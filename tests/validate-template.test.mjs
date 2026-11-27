@@ -48,6 +48,7 @@ import {
   shiftAudioPacketTimestamp,
 } from '../apps/user-editor/lib/webcodecs-exporter.js';
 import {
+  computeContourFlowField,
   computeGridEdgeMap,
   computeMatrixWorldState,
   normalizeLumaContrast,
@@ -624,4 +625,13 @@ test('sample-matrix-code-09 defaults audio to OFF and matrix-code-engine transit
   assert.equal(stretched[0], 0);
   assert.ok(Math.abs(stretched[1] - 0.5) < 1e-6);
   assert.equal(stretched[2], 1);
+
+  // 水平境界では接線ベクトルが横方向（|tx| > |ty|）になることを検証
+  const horizEdge = new Float32Array([
+    0, 0, 0,
+    1, 1, 1,
+    1, 1, 1,
+  ]);
+  const flow = computeContourFlowField(horizEdge, 3, 3);
+  assert.ok(Math.abs(flow.tx[1 * 3 + 1]) > Math.abs(flow.ty[1 * 3 + 1]));
 });

@@ -1,21 +1,21 @@
 /**
- * 2秒後の一瞬グリッチ（「ザザッ」）の直後、黒と緑のデジタルコードだけで
- * 写真や動画の元の姿・輪郭がはっきり判別できるように描くエンジン。
+ * 2秒後の一瞬グリッチ（「ザザッ」）の直後、映像の輪郭（縦・横・右から左・斜めカーブ）の
+ * 接線ベクトル場に沿って緑のデジタルコードが滑らかに流れ動く世界を描画するエンジン。
  */
 
 const MATRIX_GLYPHS =
   '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const DENSITY_CONFIG = {
-  fine: { cols: 108, fontRatio: 1.08 },
-  standard: { cols: 80, fontRatio: 1.1 },
-  bold: { cols: 52, fontRatio: 1.14 },
+  fine: { cols: 104, fontRatio: 1.08 },
+  standard: { cols: 76, fontRatio: 1.1 },
+  bold: { cols: 50, fontRatio: 1.14 },
 };
 
 const VISIBILITY_CONFIG = {
-  silhouette: { gamma: 1.45, edgeBoost: 0.45, floorCutoff: 0.1, streamMix: 0.14 },
-  balanced: { gamma: 1.25, edgeBoost: 0.35, floorCutoff: 0.06, streamMix: 0.22 },
-  rain: { gamma: 1.1, edgeBoost: 0.25, floorCutoff: 0.03, streamMix: 0.34 },
+  silhouette: { gamma: 1.45, edgeBoost: 0.52, floorCutoff: 0.1, flowMix: 0.42 },
+  balanced: { gamma: 1.25, edgeBoost: 0.4, floorCutoff: 0.06, flowMix: 0.48 },
+  rain: { gamma: 1.1, edgeBoost: 0.3, floorCutoff: 0.03, flowMix: 0.56 },
 };
 
 let reusableLumaCanvas = null;
@@ -30,7 +30,7 @@ function hash2d(a, b) {
 }
 
 /**
- * 経過秒数から「通常 → 一瞬のザザッ（グリッチ） → コード輪郭世界」の状態を返す純粋関数。
+ * 経過秒数から「通常 → 一瞬のザザッ（グリッチ） → コード輪郭フロー世界」の状態を返す純粋関数。
  */
 export function computeMatrixWorldState(
   localSec,
@@ -69,45 +69,7 @@ export function computeMatrixWorldState(
 }
 
 /**
- * 指定のセル(col, row)におけるコード文字と微細なデータ流れ強度(0..1)を返す純粋関数。
- */
-export function sampleMatrixCell(col, row, totalRows, elapsedMatrixSec) {
-  const streamWave =
-    0.5 + 0.5 * Math.sin(col * 0.28 + row * 0.18 - elapsedMatrixSec * 6.0);
-  const changeRate = 7 + hash2d(col, row) * 7;
-  const glyphTick = Math.floor(elapsedMatrixSec * changeRate + hash2d(row, col) * 19);
-  const glyphIdx = Math.floor(hash2d(col * 37 + row * 13, glyphTick) * MATRIX_GLYPHS.length);
-  const glyph = MATRIX_GLYPHS[glyphIdx] || '0';
-
-  return {
-    glyph,
-    rainIntensity: streamWave,
-    isHead: streamWave > 0.9,
-  };
-}
-
-/**
- * 輝度配列(cols*rows)から各セルの輪郭強度（エッジ 0..1）を計算する純粋関数。
- */
-export function computeGridEdgeMap(lumaGrid, cols, rows) {
-  const edges = new Float32Array(cols * rows);
-  for (let y = 0; y < rows; y++) {
-    const y0 = y > 0 ? y - 1 : 0;
-    const y1 = y + 1 < rows ? y + 1 : rows - 1;
-    for (let x = 0; x < cols; x++) {
-      const x0 = x > 0 ? x - 1 : 0;
-      const x1 = x + 1 < cols ? x + 1 : cols - 1;
-      const gx = Math.abs(lumaGrid[y * cols + x1] - lumaGrid[y * cols + x0]);
-      const gy = Math.abs(lumaGrid[y1 * cols + x] - lumaGrid[y0 * cols + x]);
-      edges[y * cols + x] = Math.min(1, (gx + gy) * 1.5);
-    }
-  }
-  return edges;
-}
-
-/**
- * 1フレーム分の輝度配列を 5%〜95% の実効レンジへ自動ストレッチし、
- * 暗い映像や低コントラスト映像でも黒と緑の階調がくっきり出るようにする。
+ * 1フレーム分の輝度配列を最小〜最大の実効レンジへ自動ストレッチする。
  */
 export function normalizeLumaContrast(lumaGrid) {
   const n = lumaGrid.length;
@@ -134,6 +96,97 @@ export function normalizeLumaContrast(lumaGrid) {
     out[i] = Math.min(1, Math.max(0, (lumaGrid[i] - minVal) / span));
   }
   return out;
+}
+
+/**
+ * 輝度配列(cols*rows)から各セルの輪郭強度と、輪郭線に沿った接線方向ベクトル (tx, ty) を計算する純粋関数。
+ * 横線なら横向き（右から左など）、斜め・カーブならその曲線の向きに沿ってベクトルが揃う。
+ */
+export function computeContourFlowField(lumaGrid, cols, rows) {
+  const total = cols * rows;
+  const edges = new Float32Array(total);
+  const rawTx = new Float32Array(total);
+  const rawTy = new Float32Array(total);
+
+  for (let y = 0; y < rows; y++) {
+    const y0 = y > 0 ? y - 1 : 0;
+    const y1 = y + 1 < rows ? y + 1 : rows - 1;
+    for (let x = 0; x < cols; x++) {
+      const x0 = x > 0 ? x - 1 : 0;
+      const x1 = x + 1 < cols ? x + 1 : cols - 1;
+
+      const gx = lumaGrid[y * cols + x1] - lumaGrid[y * cols + x0];
+      const gy = lumaGrid[y1 * cols + x] - lumaGrid[y0 * cols + x];
+      const mag = Math.hypot(gx, gy);
+      const idx = y * cols + x;
+
+      edges[idx] = Math.min(1, mag * 1.6);
+      if (mag > 0.005) {
+        // 勾配に直交する方向 (-gy, gx) が輪郭線に沿う接線ベクトル
+        rawTx[idx] = -gy / mag;
+        rawTy[idx] = gx / mag;
+      } else {
+        // 平坦部は緩やかな斜めストリームをデフォルトにして不自然な停止を防ぐ
+        rawTx[idx] = -0.707;
+        rawTy[idx] = 0.707;
+      }
+    }
+  }
+
+  // 3x3平滑化でカーブの向きを滑らかにつなぐ
+  const tx = new Float32Array(total);
+  const ty = new Float32Array(total);
+  for (let y = 0; y < rows; y++) {
+    const y0 = y > 0 ? y - 1 : 0;
+    const y1 = y + 1 < rows ? y + 1 : rows - 1;
+    for (let x = 0; x < cols; x++) {
+      const x0 = x > 0 ? x - 1 : 0;
+      const x1 = x + 1 < cols ? x + 1 : cols - 1;
+      let sx = 0;
+      let sy = 0;
+      for (let yy = y0; yy <= y1; yy++) {
+        for (let xx = x0; xx <= x1; xx++) {
+          const nIdx = yy * cols + xx;
+          const w = 0.2 + edges[nIdx];
+          sx += rawTx[nIdx] * w;
+          sy += rawTy[nIdx] * w;
+        }
+      }
+      const len = Math.hypot(sx, sy) || 1;
+      const idx = y * cols + x;
+      tx[idx] = sx / len;
+      ty[idx] = sy / len;
+    }
+  }
+
+  return { edges, tx, ty };
+}
+
+export function computeGridEdgeMap(lumaGrid, cols, rows) {
+  return computeContourFlowField(lumaGrid, cols, rows).edges;
+}
+
+/**
+ * 輪郭接線ベクトル (tx, ty) に沿って流れるコード文字と流線パルス強度(0..1)を返す純粋関数。
+ */
+export function sampleMatrixCell(col, row, totalRows, elapsedMatrixSec, tx = 0, ty = 1) {
+  // 接線方向への射影座標に沿ってデータパケットを流す（横・右から左・斜め・カーブに対応）
+  const streamCoord = col * tx + row * ty;
+  const speed = 10.5;
+  const wavePhase = streamCoord * 0.65 - elapsedMatrixSec * speed;
+  const pulse = Math.pow(0.5 + 0.5 * Math.sin(wavePhase), 2.4);
+
+  // 流れる向きに沿って文字インデックスを送り、文字の列自体が輪郭上を走っているように見せる
+  const flowStep = Math.floor(elapsedMatrixSec * 12 - streamCoord * 0.85);
+  const laneHash = Math.floor(hash2d(Math.round(col * ty - row * tx), 7) * 97);
+  const glyphIdx = Math.abs(flowStep + laneHash + col * 3 + row * 5) % MATRIX_GLYPHS.length;
+  const glyph = MATRIX_GLYPHS[glyphIdx] || '0';
+
+  return {
+    glyph,
+    rainIntensity: pulse,
+    isHead: pulse > 0.86,
+  };
 }
 
 function getReusableCanvas(existing, width, height) {
@@ -181,7 +234,7 @@ function drawMatrixGlitchBurst(ctx, width, height, progress, intensity) {
 }
 
 /**
- * 1フレーム分の通常映像→一瞬グリッチ→高精細な黒×緑デジタルコード映像を描画する。
+ * 1フレーム分の通常映像→一瞬グリッチ→輪郭フローに沿ってコードが流れる世界を描画する。
  */
 export function drawMatrixCodeComposite(
   ctx,
@@ -229,7 +282,11 @@ export function drawMatrixCodeComposite(
   }
 
   const lumaGrid = normalizeLumaContrast(rawLumaGrid);
-  const edgeGrid = computeGridEdgeMap(lumaGrid, cols, rows);
+  const { edges: edgeGrid, tx: txGrid, ty: tyGrid } = computeContourFlowField(
+    lumaGrid,
+    cols,
+    rows
+  );
 
   ctx.save();
   ctx.fillStyle = '#010402';
@@ -243,28 +300,42 @@ export function drawMatrixCodeComposite(
   const elapsedMatrixSec = Math.max(0, localSec - triggerSec);
 
   for (let row = 0; row < rows; row++) {
-    const cy = (row + 0.5) * cellH;
+    const baseCy = (row + 0.5) * cellH;
     for (let col = 0; col < cols; col++) {
       const idx = row * cols + col;
       const luma = Math.pow(lumaGrid[idx], vCfg.gamma);
       const edge = edgeGrid[idx];
+      const baseTone = Math.min(1, luma * 0.78 + edge * vCfg.edgeBoost);
 
-      // 飽和を防ぎ、元映像の明暗階調を素直にコードの明るさへ反映する
-      const baseTone = Math.min(1, luma * 0.88 + edge * vCfg.edgeBoost);
       if (baseTone < vCfg.floorCutoff) {
         continue;
       }
 
-      const { glyph, rainIntensity } = sampleMatrixCell(col, row, rows, elapsedMatrixSec);
-      // 文字が流れる感覚は保ちつつ、元映像の明暗を壊さないよう波の強さを抑える
-      const waveFactor = 1 - vCfg.streamMix * (1 - rainIntensity);
-      const brightness = Math.min(1, baseTone * waveFactor);
+      const tx = txGrid[idx];
+      const ty = tyGrid[idx];
+      const { glyph, rainIntensity, isHead } = sampleMatrixCell(
+        col,
+        row,
+        rows,
+        elapsedMatrixSec,
+        tx,
+        ty
+      );
 
-      if (brightness > 0.78) {
-        const highlight = (brightness - 0.78) / 0.22;
-        const r = Math.round(35 + highlight * 170);
+      // 輪郭上の文字は接線方向（横・斜め・カーブ）へ微かに滑らせつつ流線パルスを走らせる
+      const flowShift = fract(elapsedMatrixSec * 3.2) - 0.5;
+      const driftPx = edge > 0.18 ? flowShift * cellW * 0.55 : 0;
+      const drawX = (col + 0.5) * cellW + tx * driftPx;
+      const drawY = baseCy + ty * driftPx;
+
+      const waveFactor = 1 - vCfg.flowMix * (1 - rainIntensity);
+      const brightness = Math.min(1, baseTone * waveFactor + (edge > 0.25 && isHead ? 0.25 : 0));
+
+      if (brightness > 0.76) {
+        const highlight = (brightness - 0.76) / 0.24;
+        const r = Math.round(45 + highlight * 175);
         const g = 255;
-        const b = Math.round(80 + highlight * 145);
+        const b = Math.round(90 + highlight * 145);
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       } else {
         const g = Math.round(28 + brightness * 225);
@@ -272,7 +343,7 @@ export function drawMatrixCodeComposite(
         ctx.fillStyle = `rgb(4, ${g}, ${b})`;
       }
 
-      ctx.fillText(glyph, (col + 0.5) * cellW, cy);
+      ctx.fillText(glyph, drawX, drawY);
     }
   }
 
