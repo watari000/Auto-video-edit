@@ -10,6 +10,7 @@ import {
   MAX_OUTPUT_HEIGHT,
   MAX_OUTPUT_WIDTH,
   buildTimelineSegments,
+  computeAdaptiveVideoBitrate,
   computeCoverCropRect,
   computeFlashOverlayAlpha,
   computeKineticTokenState,
@@ -25,6 +26,7 @@ import {
   computeBeatEnvelopeFromPcm,
   sampleEqualizerBarsAt,
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
+import { createRecordingChunkSink } from '../apps/user-editor/lib/opfs-chunk-sink.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -332,4 +334,19 @@ test('computeBeatEnvelopeFromPcm tracks melody-band phrases and computeBeatBackl
   assert.ok(swell.alpha <= 0.56);
   assert.ok(swell.spreadRatio <= 0.15);
   assert.ok(swell.edgeLineAlpha <= 0.72);
+});
+
+test('computeAdaptiveVideoBitrate scales down for >60s clips and createRecordingChunkSink falls back cleanly', async () => {
+  assert.equal(computeAdaptiveVideoBitrate(15, 1080), 4_500_000);
+  assert.equal(computeAdaptiveVideoBitrate(300, 720), 2_200_000);
+  assert.equal(computeAdaptiveVideoBitrate(300, 1080), 3_000_000);
+
+  const sink = await createRecordingChunkSink('test-clip');
+  assert.equal(sink.mode, 'memory');
+  sink.append(new Blob(['hello ']));
+  sink.append(new Blob(['world']));
+  const resultBlob = await sink.finalize('video/mp4');
+  assert.equal(resultBlob.size, 11);
+  assert.equal(resultBlob.type, 'video/mp4');
+  await sink.cleanup();
 });

@@ -62,6 +62,19 @@ export function computeSafeRenderDimensions(outputConfig = {}, scale = 1) {
 }
 
 /**
+ * 書き出し尺と解像度に応じて映像ビットレートを自動調整する（長尺・モバイル時のRAM/容量肥大化防止）。
+ */
+export function computeAdaptiveVideoBitrate(durationSec, width = 720) {
+  const isLongClip = (Number(durationSec) || 0) > 60;
+  const isFullHd = (Number(width) || 720) >= 1000;
+  if (isLongClip) {
+    // 5分間の720pでも約82MB前後に収まるよう省容量ビットレートを選択する
+    return isFullHd ? 3_000_000 : 2_200_000;
+  }
+  return isFullHd ? 4_500_000 : 3_500_000;
+}
+
+/**
  * 横長・縦長どちらの素材でも9:16枠へ中央トリミング（cover）しつつ、動きエフェクト用の切り出し矩形を計算する。
  */
 export function computeCoverCropRect(

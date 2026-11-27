@@ -1,10 +1,23 @@
 import {
   buildTimelineSegments,
+  computeAdaptiveVideoBitrate,
   computeSafeRenderDimensions,
   drawCutFrame,
   resolveCutAtTime,
   selectSupportedRecorderMimeType,
 } from '../../lib/video-engine.js';
+import { createRecordingChunkSink } from '../../lib/opfs-chunk-sink.js';
+
+async function acquireScreenWakeLock() {
+  if (typeof navigator === 'undefined' || typeof navigator.wakeLock?.request !== 'function') {
+    return null;
+  }
+  try {
+    return await navigator.wakeLock.request('screen');
+  } catch {
+    return null;
+  }
+}
 
 /**
  * STEP 04：マスタリング＆ローカル無音書き出しドック。工程ごとのテレメトリ進捗を表示する。
@@ -67,6 +80,11 @@ export function initExporterSection(container, template, state, resourcePool, be
   }
 
   let activeDownloadUrl = null;
+  let activeChunkSink = null;
+
+  window.addEventListener('beforeunload', () => {
+    activeChunkSink?.cleanup();
+  });
 
   function setProgress(stepText, percent) {
     const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
@@ -109,11 +127,22 @@ export function initExporterSection(container, template, state, resourcePool, be
     let stream = null;
     let audioContextToResume = null;
     let exportedWithAudio = false;
+    let wakeLock = null;
+    let chunkSink = null;
+    let finalized = false;
     const primaryVideo = state.mediaByCutId[segments[0]?.cut.id]?.mediaType === 'video'
       ? state.mediaByCutId[segments[0].cut.id].element
       : null;
 
     try {
+      if (activeChunkSink) {
+        await activeChunkSink.cleanup();
+        activeChunkSink = null;
+      }
+
+      wakeLock = await acquireScreenWakeLock();
+      chunkSink = await createRecordingChunkSink(template.id);
+
       await prepareVideosForStart(segments, state.mediaByCutId);
       setProgress('カット合成中...', 12);
 
@@ -132,26 +161,34 @@ export function initExporterSection(container, template, state, resourcePool, be
       }
 
       stream = new MediaStream(tracks);
-      const recorderOptions = mimeType ? { mimeType, videoBitsPerSecond: 4_500_000 } : undefined;
+      const videoBitsPerSecond = computeAdaptiveVideoBitrate(totalDurationSec, width);
+      const recorderOptions = mimeType
+        ? { mimeType, videoBitsPerSecond }
+        : { videoBitsPerSecond };
       const recorder = new MediaRecorder(stream, recorderOptions);
-      const chunks = [];
 
       const recordingDone = new Promise((resolve, reject) => {
         recorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
-            chunks.push(event.data);
+            chunkSink.append(event.data);
           }
         };
         recorder.onerror = () => {
           reject(new Error('動画の録画処理中にエラーが発生しました。軽量モード（720×1280）でお試しください。'));
         };
-        recorder.onstop = () => {
-          const finalType = recorder.mimeType || mimeType || 'video/webm';
-          resolve(new Blob(chunks, { type: finalType }));
+        recorder.onstop = async () => {
+          try {
+            const finalType = recorder.mimeType || mimeType || 'video/webm';
+            const blob = await chunkSink.finalize(finalType);
+            resolve(blob);
+          } catch (finalizeError) {
+            reject(finalizeError);
+          }
         };
       });
 
-      recorder.start(250);
+      // 長尺動画でもOPFSへ滑らかに逐次フラッシュできるよう1秒間隔でチャンクを受け取る
+      recorder.start(1000);
       await runTimelineRecording(ctx, segments, totalDurationSec, fps, width, height, state, (ratio) => {
         setProgress('カット合成中...', 12 + ratio * 76);
       });
@@ -159,6 +196,8 @@ export function initExporterSection(container, template, state, resourcePool, be
       setProgress('動画ファイル生成中...', 92);
       recorder.stop();
       const outputBlob = await recordingDone;
+      finalized = true;
+      activeChunkSink = chunkSink;
 
       if (activeDownloadUrl) {
         resourcePool.revokeUrl(activeDownloadUrl);
@@ -169,12 +208,13 @@ export function initExporterSection(container, template, state, resourcePool, be
       const ext = isMp4 ? 'mp4' : 'webm';
       const fileName = `Auto-video-edit_${template.id}.${ext}`;
       const audioLabel = exportedWithAudio ? '音声あり' : '無音';
+      const opfsLabel = chunkSink.mode === 'opfs' ? ' / OPFS省メモリ保存' : '';
 
       setProgress('書き出し完了！', 100);
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `
         <p class="notice notice-ok">
-          ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒）の書き出しが完了しました。
+          ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒${opfsLabel}）の書き出しが完了しました。
           ${isMp4 ? '' : '（※このブラウザはMP4直接出力非対応のため WebM 形式で保存されました。Safari等ではMP4で保存されます）'}
         </p>
         <a href="${activeDownloadUrl}" download="${fileName}" class="btn btn-primary download-cta">
@@ -187,9 +227,15 @@ export function initExporterSection(container, template, state, resourcePool, be
         }</p>
       `;
     } catch (error) {
+      if (chunkSink && !finalized) {
+        await chunkSink.cleanup();
+      }
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
     } finally {
+      if (wakeLock && typeof wakeLock.release === 'function') {
+        wakeLock.release().catch(() => {});
+      }
       if (primaryVideo) {
         primaryVideo.muted = true;
       }
