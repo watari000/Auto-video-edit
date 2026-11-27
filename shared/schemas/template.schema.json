@@ -247,7 +247,7 @@
           "properties": {
             "motion": {
               "type": "string",
-              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-shake"]
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-glow"]
             },
             "transitionIn": {
               "type": "string",

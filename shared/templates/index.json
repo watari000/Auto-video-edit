@@ -79,14 +79,14 @@
   },
   {
     "id": "sample-dance-beat-07",
-    "title": "Dance Beat Shake・音声ビート微振動",
+    "title": "Dance Beat Glow・縁バックライト演出",
     "category": "DANCE / AUDIO SYNC",
-    "summary": "ダンス動画の音声ビートをブラウザで自動解析し、拍に合わせて画面をわずかに振動させます。長さと揺れ調整・音あり保存にも対応。",
+    "summary": "ダンス動画の音声ビートをブラウザで自動解析し、映像は固定のまま縁だけがバックライトのように微かに光ります。尺調整・音あり保存対応。",
     "durationSec": 8.0,
     "cutCount": 1,
     "aspectRatio": "9:16",
     "bpmLabel": "AUTO BEAT",
-    "filterTag": "AUDIO SHAKE",
+    "filterTag": "BEAT GLOW",
     "templatePath": "./sample-dance-beat-07/template.json",
     "coverAsset": "./sample-dance-beat-07/guide-assets/cut-01.svg"
   }

@@ -21,8 +21,8 @@ import {
   resolveCutAtTime,
 } from '../apps/user-editor/lib/video-engine.js';
 import {
+  computeBeatBacklightState,
   computeBeatEnvelopeFromPcm,
-  computeBeatShakeOffset,
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 
@@ -295,7 +295,7 @@ test('computeFlashOverlayAlpha peaks at 0s and decays to 0 after 0.09s', () => {
   assert.equal(computeFlashOverlayAlpha(0.5), 0);
 });
 
-test('computeBeatEnvelopeFromPcm detects beat bursts and computeBeatShakeOffset stays subtle', () => {
+test('computeBeatEnvelopeFromPcm detects beat bursts and computeBeatBacklightState glows softly on beats', () => {
   const sampleRate = 3000;
   const silent = new Float32Array(sampleRate * 2);
   const silentResult = computeBeatEnvelopeFromPcm(silent, sampleRate);
@@ -312,13 +312,13 @@ test('computeBeatEnvelopeFromPcm detects beat bursts and computeBeatShakeOffset 
   const beatResult = computeBeatEnvelopeFromPcm(beats, sampleRate);
   assert.ok(beatResult.peakCount >= 3, `Expected >= 3 peaks, got ${beatResult.peakCount}`);
 
-  const calm = computeBeatShakeOffset(0.15, 0.5, 0.6);
-  assert.equal(calm.offsetX, 0);
-  assert.equal(calm.offsetY, 0);
-  assert.equal(calm.zoomBoost, 0);
+  const calm = computeBeatBacklightState(0.15, 0.6);
+  assert.equal(calm.alpha, 0);
+  assert.equal(calm.spreadRatio, 0);
+  assert.equal(calm.edgeLineAlpha, 0);
 
-  const hit = computeBeatShakeOffset(0.95, 0.5, 0.6);
-  assert.ok(Math.abs(hit.offsetX) <= 0.015);
-  assert.ok(Math.abs(hit.offsetY) <= 0.015);
-  assert.ok(hit.zoomBoost > 0.03);
+  const hit = computeBeatBacklightState(0.95, 0.6);
+  assert.ok(hit.alpha > 0.2 && hit.alpha <= 0.58);
+  assert.ok(hit.spreadRatio > 0.05 && hit.spreadRatio <= 0.14);
+  assert.ok(hit.edgeLineAlpha > 0.2 && hit.edgeLineAlpha <= 0.75);
 });

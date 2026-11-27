@@ -92,25 +92,22 @@ export function sampleBeatStrengthAt(beatAnalysis, timeSec) {
 }
 
 /**
- * ビート強度に応じてカメラをわずかに揺らす正規化オフセットと黒縁防止ズーム量を返す（純粋関数）。
+ * ビート強度に応じて画面の縁がバックライトのように微かに発光する状態を返す（純粋関数）。
  */
-export function computeBeatShakeOffset(beatStrength, timeSec, intensity = 0.6) {
+export function computeBeatBacklightState(beatStrength, intensity = 0.6) {
   const strength = clamp(Number(beatStrength) || 0, 0, 1);
   const safeIntensity = clamp(Number(intensity) || 0, 0, 1.5);
 
-  if (strength < 0.32 || safeIntensity <= 0) {
-    return { offsetX: 0, offsetY: 0, zoomBoost: 0 };
+  if (strength < 0.28 || safeIntensity <= 0) {
+    return { alpha: 0, spreadRatio: 0, edgeLineAlpha: 0 };
   }
 
-  const excess = (strength - 0.32) / 0.68;
-  const t = Number(timeSec) || 0;
-  // 揺れ幅を最大約1.4%前後に抑えて見やすさを維持しつつ、黒縁が出ないよう少しズームする
-  const amplitude = 0.014 * excess * safeIntensity;
-  const offsetX = Number((Math.sin(t * 42) * amplitude).toFixed(5));
-  const offsetY = Number((Math.cos(t * 53 + 1.1) * amplitude * 0.85).toFixed(5));
-  const zoomBoost = Number((0.03 + 0.035 * excess * safeIntensity).toFixed(5));
-
-  return { offsetX, offsetY, zoomBoost };
+  const excess = (strength - 0.28) / 0.72;
+  return {
+    alpha: Number(clamp(0.14 + 0.34 * excess * safeIntensity, 0, 0.58).toFixed(4)),
+    spreadRatio: Number(clamp(0.055 + 0.055 * excess * safeIntensity, 0.04, 0.14).toFixed(4)),
+    edgeLineAlpha: Number(clamp(0.2 + 0.45 * excess * safeIntensity, 0, 0.75).toFixed(4)),
+  };
 }
 
 /**

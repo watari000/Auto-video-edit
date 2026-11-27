@@ -1,7 +1,14 @@
 import {
-  computeBeatShakeOffset,
+  computeBeatBacklightState,
   sampleBeatStrengthAt,
 } from './audio-beat-analyzer.js';
+
+const BACKLIGHT_COLOR_MAP = {
+  'warm-gold': [245, 198, 128],
+  vermilion: [255, 92, 54],
+  'cool-blue': [96, 185, 255],
+  'pure-white': [248, 246, 240],
+};
 
 export const MAX_OUTPUT_WIDTH = 1080;
 export const MAX_OUTPUT_HEIGHT = 1920;
@@ -650,6 +657,63 @@ export function computeFlashOverlayAlpha(localSec) {
   return Number((0.55 * (1 - clamp(t / 0.09, 0, 1))).toFixed(4));
 }
 
+function drawBeatBacklightOverlay(ctx, width, height, backlightState, colorKey = 'warm-gold') {
+  if (!backlightState || backlightState.alpha <= 0.005) {
+    return;
+  }
+
+  const [r, g, b] = BACKLIGHT_COLOR_MAP[colorKey] || BACKLIGHT_COLOR_MAP['warm-gold'];
+  const spreadPx = Math.max(12, Math.round(width * backlightState.spreadRatio));
+  const innerColor = `rgba(${r}, ${g}, ${b}, ${backlightState.alpha})`;
+  const edgeMidColor = `rgba(${r}, ${g}, ${b}, ${(backlightState.alpha * 0.35).toFixed(4)})`;
+  const transparentColor = `rgba(${r}, ${g}, ${b}, 0)`;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  // 上辺からのバックライト光
+  const topGrad = ctx.createLinearGradient(0, 0, 0, spreadPx);
+  topGrad.addColorStop(0, innerColor);
+  topGrad.addColorStop(0.45, edgeMidColor);
+  topGrad.addColorStop(1, transparentColor);
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, width, spreadPx);
+
+  // 下辺からのバックライト光
+  const bottomGrad = ctx.createLinearGradient(0, height, 0, height - spreadPx);
+  bottomGrad.addColorStop(0, innerColor);
+  bottomGrad.addColorStop(0.45, edgeMidColor);
+  bottomGrad.addColorStop(1, transparentColor);
+  ctx.fillStyle = bottomGrad;
+  ctx.fillRect(0, height - spreadPx, width, spreadPx);
+
+  // 左辺からのバックライト光
+  const leftGrad = ctx.createLinearGradient(0, 0, spreadPx, 0);
+  leftGrad.addColorStop(0, innerColor);
+  leftGrad.addColorStop(0.45, edgeMidColor);
+  leftGrad.addColorStop(1, transparentColor);
+  ctx.fillStyle = leftGrad;
+  ctx.fillRect(0, 0, spreadPx, height);
+
+  // 右辺からのバックライト光
+  const rightGrad = ctx.createLinearGradient(width, 0, width - spreadPx, 0);
+  rightGrad.addColorStop(0, innerColor);
+  rightGrad.addColorStop(0.45, edgeMidColor);
+  rightGrad.addColorStop(1, transparentColor);
+  ctx.fillStyle = rightGrad;
+  ctx.fillRect(width - spreadPx, 0, spreadPx, height);
+
+  // 映像を揺らさず輪郭だけを際立たせる極細リムライト
+  if (backlightState.edgeLineAlpha > 0.01) {
+    const rimWidth = Math.max(2, Math.round(width * 0.005));
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${backlightState.edgeLineAlpha})`;
+    ctx.lineWidth = rimWidth;
+    ctx.strokeRect(rimWidth / 2, rimWidth / 2, width - rimWidth, height - rimWidth);
+  }
+
+  ctx.restore();
+}
+
 /**
  * 1フレーム分の映像（素材・エフェクト・フェード・テロップ）をCanvasへ描画する。
  */
@@ -734,42 +798,16 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   }
 
   if (element && sourceWidth > 0 && sourceHeight > 0) {
-    let crop;
-    if (cut.effect?.motion === 'beat-shake') {
-      const hasAnalyzedBeats = Boolean(mediaEntry.beatAnalysis?.envelope?.length);
-      const beatStrength = hasAnalyzedBeats
-        ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, (mediaEntry.trimStartSec || 0) + localSec)
-        : Math.pow(1 - ((((localSec % 0.5) + 0.5) % 0.5) / 0.5), 3);
-      const shake = computeBeatShakeOffset(
-        beatStrength,
-        localSec,
-        mediaEntry.shakeIntensity ?? 0.6
-      );
-      const base = computeCoverCropRect(sourceWidth, sourceHeight, width, height, 'none', progress);
-      const scale = 1 + shake.zoomBoost;
-      const sw = base.sw / scale;
-      const sh = base.sh / scale;
-      const sx = clamp(
-        base.sx + (base.sw - sw) / 2 + shake.offsetX * base.sw,
-        0,
-        Math.max(0, sourceWidth - sw)
-      );
-      const sy = clamp(
-        base.sy + (base.sh - sh) / 2 + shake.offsetY * base.sh,
-        0,
-        Math.max(0, sourceHeight - sh)
-      );
-      crop = { sx, sy, sw, sh };
-    } else {
-      crop = computeCoverCropRect(
-        sourceWidth,
-        sourceHeight,
-        width,
-        height,
-        cut.effect?.motion || 'none',
-        progress
-      );
-    }
+    // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ
+    const cropMotion = cut.effect?.motion === 'beat-glow' ? 'none' : cut.effect?.motion || 'none';
+    const crop = computeCoverCropRect(
+      sourceWidth,
+      sourceHeight,
+      width,
+      height,
+      cropMotion,
+      progress
+    );
 
     if ('filter' in ctx) {
       ctx.filter = getCanvasFilterString(cut.effect?.filter);
@@ -799,6 +837,15 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   }
 
   ctx.restore();
+
+  if (cut.effect?.motion === 'beat-glow') {
+    const hasAnalyzedBeats = Boolean(mediaEntry?.beatAnalysis?.envelope?.length);
+    const beatStrength = hasAnalyzedBeats
+      ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, (mediaEntry.trimStartSec || 0) + localSec)
+      : Math.pow(1 - ((((localSec % 0.5) + 0.5) % 0.5) / 0.5), 3);
+    const backlight = computeBeatBacklightState(beatStrength, mediaEntry?.glowIntensity ?? 0.6);
+    drawBeatBacklightOverlay(ctx, width, height, backlight, mediaEntry?.glowColor || 'warm-gold');
+  }
 
   if (cut.effect?.transitionIn === 'flash') {
     const flashAlpha = computeFlashOverlayAlpha(localSec);

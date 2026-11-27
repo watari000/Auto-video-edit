@@ -228,7 +228,8 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
       cut.durationSec = defaultDur;
 
       inspected.beatAnalysis = beatAnalysis;
-      inspected.shakeIntensity = 0.6;
+      inspected.glowIntensity = 0.6;
+      inspected.glowColor = 'warm-gold';
       inspected.trimStartSec = 0;
       state.mediaByCutId[cut.id] = inspected;
 
@@ -238,8 +239,8 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
       beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${beatAnalysis.peakCount} BEATS DETECTED`;
 
       const beatNotice = beatAnalysis.hasAudio
-        ? `<p class="notice notice-ok">音声から ${beatAnalysis.peakCount} 箇所のビートを検出しました！拍に合わせて画面がわずかに振動します。</p>`
-        : '<p class="notice notice-tip">音声トラックが検出できなかったため、標準リズムで軽い振動を適用します。</p>';
+        ? `<p class="notice notice-ok">音声から ${beatAnalysis.peakCount} 箇所のビートを検出しました！拍に合わせて画面の縁がバックライトのように微かに光ります。</p>`
+        : '<p class="notice notice-tip">音声トラックが検出できなかったため、標準リズムで縁のバックライト発光を適用します。</p>';
 
       renderPrecheckMessages(feedbackBox, inspected.warnings);
       feedbackBox.insertAdjacentHTML('afterbegin', beatNotice);
@@ -275,9 +276,18 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
     </div>
     <div class="beat-control-row">
       <div class="trim-header">
-        <span class="trim-label" id="beat-intensity-label">振動の強さ：標準（0.6）</span>
+        <span class="trim-label" id="beat-intensity-label">バックライトの強さ：標準（0.6）</span>
       </div>
-      <input type="range" id="beat-intensity-slider" class="trim-slider" min="0.2" max="1.2" step="0.1" value="0.6" aria-label="ビート振動の強さ" />
+      <input type="range" id="beat-intensity-slider" class="trim-slider" min="0.2" max="1.2" step="0.1" value="0.6" aria-label="バックライト発光の強さ" />
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="beat-color-select">バックライトの色</label>
+      <select id="beat-color-select" class="quality-select">
+        <option value="warm-gold" selected>シャンパン暖色（おすすめ）</option>
+        <option value="vermilion">バーミリオン（情熱レッド）</option>
+        <option value="cool-blue">クールブルー（ステージ光）</option>
+        <option value="pure-white">ピュアホワイト（クリア光）</option>
+      </select>
     </div>
   `;
 
@@ -287,15 +297,16 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
   const startLabel = controlsBox.querySelector('#beat-start-label');
   const intensitySlider = controlsBox.querySelector('#beat-intensity-slider');
   const intensityLabel = controlsBox.querySelector('#beat-intensity-label');
+  const colorSelect = controlsBox.querySelector('#beat-color-select');
 
   function syncLabels() {
     const start = mediaEntry.trimStartSec || 0;
     const end = Math.min(videoDur, start + cut.durationSec);
     durationLabel.textContent = `使う長さ：${cut.durationSec.toFixed(1)}秒（全 ${videoDur.toFixed(1)}秒）`;
     startLabel.textContent = `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
-    const val = mediaEntry.shakeIntensity ?? 0.6;
-    const tag = val <= 0.4 ? '控えめ' : val >= 0.9 ? '強め' : '標準';
-    intensityLabel.textContent = `振動の強さ：${tag}（${val.toFixed(1)}）`;
+    const val = mediaEntry.glowIntensity ?? 0.6;
+    const tag = val <= 0.4 ? '微か' : val >= 0.9 ? '明るめ' : '標準';
+    intensityLabel.textContent = `バックライトの強さ：${tag}（${val.toFixed(1)}）`;
     beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${mediaEntry.beatAnalysis?.peakCount || 0} BEATS DETECTED`;
   }
 
@@ -318,8 +329,13 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
   });
 
   intensitySlider.addEventListener('input', () => {
-    mediaEntry.shakeIntensity = Number(intensitySlider.value);
+    mediaEntry.glowIntensity = Number(intensitySlider.value);
     syncLabels();
+    onStateChange();
+  });
+
+  colorSelect.addEventListener('change', () => {
+    mediaEntry.glowColor = colorSelect.value;
     onStateChange();
   });
 
