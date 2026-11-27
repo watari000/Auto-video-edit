@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-sketch-art-04",
+  "title": "Sketch to Reality・アート演出3カット",
+  "description": "選択した写真や動画からブラウザ内で線画スケッチと手書き風枠線を自動生成し、斜めのスキャンラインとともに本物の映像へ変化させるアート系3カット（合計6.6秒）テンプレートです。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "Lo-Fi アート・シネマティックビート・ペン音やピアノ系",
+    "bpmRange": {
+      "min": 92,
+      "max": 112
+    },
+    "suggestedSearchKeywords": [
+      "lofi aesthetic transition",
+      "cinematic piano beat",
+      "art reel instrumental"
+    ],
+    "note": "各カットの最初の約0.6秒で線画が描かれ、そのあと一気に実写へ切り替わるため、曲のドロップや拍に合わせると映えます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：インク線画 → 実写リビール",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 2.2,
+      "shootingGuide": {
+        "shotType": "輪郭がはっきりした被写体（建物・カフェ・人物）",
+        "cameraMove": "ゆっくり寄る / 写真でも綺麗に線画化",
+        "tips": "空や壁など背景がシンプルな素材を選ぶと、手書き風の線画イラストから実写へ変わる対比がくっきり映えます。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "sketch-to-reality",
+        "sketchStyle": "ink-paper",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "Sketch to Reality",
+        "placeholder": "例：Sketch to Reality / タイトル",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "pill"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：鉛筆スケッチ → 動き出す瞬間",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 2.2,
+      "shootingGuide": {
+        "shotType": "手元・ドリンク・街角のワンシーン",
+        "cameraMove": "左から右へ軽くスライド",
+        "tips": "動きのある動画を選ぶと、静止スケッチが実写に変わった瞬間に動き出すギャップを演出できます。",
+        "silhouetteAsset": "guide-assets/cut-02.svg"
+      },
+      "effect": {
+        "motion": "pan-right",
+        "transitionIn": "sketch-to-reality",
+        "sketchStyle": "pencil-warm",
+        "filter": "vintage"
+      },
+      "textOverlay": {
+        "defaultText": "線画が動き出す",
+        "placeholder": "例：線画が動き出す / 一言メモ",
+        "maxLength": 24,
+        "position": "top",
+        "style": "shadow"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：チョーク黒板線画 → 鮮やかフィナーレ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 2.2,
+      "shootingGuide": {
+        "shotType": "ネオン・夜景・カラフルな景色",
+        "cameraMove": "ゆっくり引いて全体を見せる",
+        "tips": "黒ベースに白線から鮮やかな映像へ変わるため、光や色味のあるシーンを最後に置くと引き締まります。",
+        "silhouetteAsset": "guide-assets/cut-03.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "sketch-to-reality",
+        "sketchStyle": "chalk-dark",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "日常をアートに",
+        "placeholder": "例：日常をアートに / 締めの一言",
+        "maxLength": 24,
+        "position": "center",
+        "style": "clean"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:08:00+09:00",
+    "updatedAt": "2026-11-27T17:08:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Sketch to Reality アートリビール演出テンプレート"
+  }
+}

@@ -242,7 +242,12 @@
             },
             "transitionIn": {
               "type": "string",
-              "enum": ["cut", "fade"]
+              "enum": ["cut", "fade", "sketch-to-reality"]
+            },
+            "sketchStyle": {
+              "type": "string",
+              "enum": ["ink-paper", "chalk-dark", "pencil-warm"],
+              "description": "sketch-to-reality 演出時の線画スタイル"
             },
             "filter": {
               "type": "string",

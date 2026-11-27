@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット2：鉛筆スケッチから動き出す手元シーンの構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="14" y="14" width="152" height="292" rx="4" fill="none" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1.3" stroke-dasharray="5 3" />
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">SKETCH 02 // 2.2S</text>
+  <rect x="26" y="42" width="128" height="24" rx="4" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="57" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+  <!-- Pencil wireframe -->
+  <circle cx="90" cy="166" r="44" fill="none" stroke="#f4f1ea" stroke-width="1.4" stroke-dasharray="4 3" />
+  <path d="M58 148 H122 L114 202 H66 Z" fill="#d4af7a" fill-opacity="0.12" stroke="#f4f1ea" stroke-width="1.4" />
+  <line x1="168" y1="74" x2="12" y2="254" stroke="#ff4d1c" stroke-width="1.8" />
+  <path d="M64 274 H116 M108 268 L116 274 L108 280" stroke="#ff4d1c" stroke-width="1.6" fill="none" stroke-linecap="round" />
+</svg>

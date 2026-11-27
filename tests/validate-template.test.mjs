@@ -12,6 +12,8 @@ import {
   buildTimelineSegments,
   computeCoverCropRect,
   computeSafeRenderDimensions,
+  computeSketchRevealState,
+  generateSketchImageData,
   getCanvasFilterString,
   resolveCutAtTime,
 } from '../apps/user-editor/lib/video-engine.js';
@@ -47,12 +49,12 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
-test('shared/templates/index.json lists >= 3 valid templates with existing assets and unique IDs', async () => {
+test('shared/templates/index.json lists >= 4 valid templates with existing assets and unique IDs', async () => {
   const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 3);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 4);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -80,6 +82,8 @@ test('shared/templates/index.json lists >= 3 valid templates with existing asset
       assert.ok(svgStat.isFile(), `Missing SVG for ${entry.id}/${cut.id}`);
     }
   }
+
+  assert.equal(seenIds.has('sample-sketch-art-04'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -198,4 +202,46 @@ test('apps/user-editor contains no media upload calls (RULE 02 zero-server priva
     assert.equal(/sendBeacon/.test(content), false, `Forbidden sendBeacon in ${filePath}`);
     assert.equal(/method\s*:\s*['"]POST['"]/i.test(content), false, `Forbidden POST in ${filePath}`);
   }
+});
+
+test('computeSketchRevealState transitions through sketch-hold, revealing, and reality phases', () => {
+  const hold = computeSketchRevealState(0.2, 2.2);
+  assert.equal(hold.phase, 'sketch-hold');
+  assert.equal(hold.revealRatio, 0);
+  assert.ok(hold.frameDrawProgress > 0 && hold.frameDrawProgress < 1);
+
+  const revealing = computeSketchRevealState(1.0, 2.2);
+  assert.equal(revealing.phase, 'revealing');
+  assert.ok(revealing.revealRatio > 0 && revealing.revealRatio < 1);
+
+  const reality = computeSketchRevealState(1.8, 2.2);
+  assert.equal(reality.phase, 'reality');
+  assert.equal(reality.revealRatio, 1);
+});
+
+test('generateSketchImageData renders paper on flat regions and ink on sharp edges', () => {
+  const width = 5;
+  const height = 5;
+  const flatRgba = new Uint8ClampedArray(width * height * 4).fill(120);
+  const flatSketch = generateSketchImageData(flatRgba, width, height, 'ink-paper');
+  const centerIdx = (2 * width + 2) * 4;
+  assert.equal(flatSketch[centerIdx], 244);
+  assert.equal(flatSketch[centerIdx + 1], 239);
+  assert.equal(flatSketch[centerIdx + 2], 228);
+
+  const edgeRgba = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const v = x >= 2 ? 255 : 0;
+      const idx = (y * width + x) * 4;
+      edgeRgba[idx] = v;
+      edgeRgba[idx + 1] = v;
+      edgeRgba[idx + 2] = v;
+      edgeRgba[idx + 3] = 255;
+    }
+  }
+  const edgeSketch = generateSketchImageData(edgeRgba, width, height, 'ink-paper');
+  assert.equal(edgeSketch[centerIdx], 30);
+  assert.equal(edgeSketch[centerIdx + 1], 27);
+  assert.equal(edgeSketch[centerIdx + 2], 24);
 });

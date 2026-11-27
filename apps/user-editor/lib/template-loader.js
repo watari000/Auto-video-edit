@@ -2,7 +2,8 @@ const ALLOWED_STATUSES = new Set(['draft', 'review', 'published']);
 const ALLOWED_ASPECT_RATIOS = new Set(['9:16', '1:1', '4:5']);
 const ALLOWED_MEDIA_TYPES = new Set(['video', 'image']);
 const ALLOWED_MOTIONS = new Set(['none', 'zoom-in', 'zoom-out', 'pan-left', 'pan-right']);
-const ALLOWED_TRANSITIONS = new Set(['cut', 'fade']);
+const ALLOWED_TRANSITIONS = new Set(['cut', 'fade', 'sketch-to-reality']);
+const ALLOWED_SKETCH_STYLES = new Set(['ink-paper', 'chalk-dark', 'pencil-warm']);
 const ALLOWED_FILTERS = new Set(['none', 'warm', 'cool', 'vintage', 'vivid']);
 const ALLOWED_TEXT_POSITIONS = new Set(['top', 'center', 'bottom']);
 const ALLOWED_TEXT_STYLES = new Set(['clean', 'pill', 'shadow']);
@@ -136,6 +137,9 @@ export function validateTemplateData(data) {
         }
         if (!ALLOWED_TRANSITIONS.has(cut.effect.transitionIn)) {
           errors.push(`${prefix}.effect.transitionIn が不正です。`);
+        }
+        if (cut.effect.sketchStyle !== undefined && !ALLOWED_SKETCH_STYLES.has(cut.effect.sketchStyle)) {
+          errors.push(`${prefix}.effect.sketchStyle が不正です。`);
         }
         if (!ALLOWED_FILTERS.has(cut.effect.filter)) {
           errors.push(`${prefix}.effect.filter が不正です。`);

@@ -2,6 +2,27 @@ export const MAX_OUTPUT_WIDTH = 1080;
 export const MAX_OUTPUT_HEIGHT = 1920;
 export const MAX_OUTPUT_FPS = 30;
 
+const SKETCH_PALETTES = {
+  'ink-paper': {
+    paper: [244, 239, 228],
+    ink: [30, 27, 24],
+    strokeCss: '#1e1b18',
+    accentCss: '#ff4d1c',
+  },
+  'chalk-dark': {
+    paper: [20, 20, 24],
+    ink: [244, 241, 234],
+    strokeCss: '#f4f1ea',
+    accentCss: '#d4af7a',
+  },
+  'pencil-warm': {
+    paper: [247, 241, 227],
+    ink: [74, 59, 44],
+    strokeCss: '#4a3b2c',
+    accentCss: '#d97706',
+  },
+};
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -211,6 +232,194 @@ function drawTextOverlay(ctx, textOverlay, textOverride, width, height) {
 }
 
 /**
+ * Sketch to Reality 演出の現在フェーズと進行率（0..1）を計算する。
+ */
+export function computeSketchRevealState(localSec, durationSec) {
+  const duration = Math.max(0.001, Number(durationSec) || 1);
+  const t = clamp(Number(localSec) || 0, 0, duration);
+  const holdEnd = Math.min(0.65, duration * 0.28);
+  const revealEnd = Math.min(duration * 0.68, holdEnd + 0.85);
+
+  if (t < holdEnd) {
+    return {
+      phase: 'sketch-hold',
+      revealRatio: 0,
+      frameDrawProgress: clamp(t / Math.max(0.001, holdEnd), 0, 1),
+      overlayOpacity: 1,
+    };
+  }
+
+  if (t < revealEnd) {
+    const linear = clamp((t - holdEnd) / Math.max(0.001, revealEnd - holdEnd), 0, 1);
+    const eased = 1 - Math.pow(1 - linear, 3);
+    return {
+      phase: 'revealing',
+      revealRatio: eased,
+      frameDrawProgress: 1,
+      overlayOpacity: 1 - eased * 0.65,
+    };
+  }
+
+  const tailRatio = clamp((t - revealEnd) / Math.max(0.001, duration - revealEnd), 0, 1);
+  return {
+    phase: 'reality',
+    revealRatio: 1,
+    frameDrawProgress: 1,
+    overlayOpacity: 0.35 * (1 - tailRatio),
+  };
+}
+
+/**
+ * RGBAピクセル配列からSobelエッジ検出を行い、紙とペン風の線画RGBA配列を生成する（純粋関数）。
+ */
+export function generateSketchImageData(rgbaData, width, height, sketchStyle = 'ink-paper') {
+  const palette = SKETCH_PALETTES[sketchStyle] || SKETCH_PALETTES['ink-paper'];
+  const pixelCount = width * height;
+  const output = new Uint8ClampedArray(pixelCount * 4);
+  const gray = new Float32Array(pixelCount);
+
+  for (let i = 0; i < pixelCount; i++) {
+    const idx = i * 4;
+    gray[i] = 0.299 * rgbaData[idx] + 0.587 * rgbaData[idx + 1] + 0.114 * rgbaData[idx + 2];
+  }
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      let edgeStrength = 0;
+
+      if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+        const tl = gray[(y - 1) * width + (x - 1)];
+        const tm = gray[(y - 1) * width + x];
+        const tr = gray[(y - 1) * width + (x + 1)];
+        const ml = gray[y * width + (x - 1)];
+        const mr = gray[y * width + (x + 1)];
+        const bl = gray[(y + 1) * width + (x - 1)];
+        const bm = gray[(y + 1) * width + x];
+        const br = gray[(y + 1) * width + (x + 1)];
+
+        const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+        const gy = -tl - 2 * tm - tr + bl + 2 * bm + br;
+        const mag = Math.sqrt(gx * gx + gy * gy);
+        edgeStrength = clamp((mag - 36) / 140, 0, 1);
+      }
+
+      const outIdx = i * 4;
+      output[outIdx] = Math.round(palette.paper[0] + (palette.ink[0] - palette.paper[0]) * edgeStrength);
+      output[outIdx + 1] = Math.round(palette.paper[1] + (palette.ink[1] - palette.paper[1]) * edgeStrength);
+      output[outIdx + 2] = Math.round(palette.paper[2] + (palette.ink[2] - palette.paper[2]) * edgeStrength);
+      output[outIdx + 3] = 255;
+    }
+  }
+
+  return output;
+}
+
+function getOrCreateSketchCanvas(mediaEntry, targetWidth, targetHeight, sketchStyle) {
+  if (!mediaEntry._sketchCache) {
+    mediaEntry._sketchCache = {};
+  }
+  const cacheKey = `${sketchStyle}`;
+  if (mediaEntry._sketchCache[cacheKey]) {
+    return mediaEntry._sketchCache[cacheKey];
+  }
+
+  // iOS Safariでも30fpsを保てるよう、線画生成は270x480の軽量サイズで初回のみキャッシュする
+  const sketchW = 270;
+  const sketchH = Math.max(2, Math.round((sketchW * targetHeight) / Math.max(1, targetWidth)));
+  const canvas = document.createElement('canvas');
+  canvas.width = sketchW;
+  canvas.height = sketchH;
+  const sCtx = canvas.getContext('2d', { willReadFrequently: true });
+
+  if (sCtx) {
+    const crop = computeCoverCropRect(
+      mediaEntry.width,
+      mediaEntry.height,
+      sketchW,
+      sketchH,
+      'none',
+      0
+    );
+    sCtx.drawImage(mediaEntry.element, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, sketchW, sketchH);
+    try {
+      const imgData = sCtx.getImageData(0, 0, sketchW, sketchH);
+      const sketched = generateSketchImageData(imgData.data, sketchW, sketchH, sketchStyle);
+      imgData.data.set(sketched);
+      sCtx.putImageData(imgData, 0, 0);
+    } catch {
+      // ピクセル読み取りが制限された場合は単色背景にフォールバック
+    }
+  }
+
+  mediaEntry._sketchCache[cacheKey] = canvas;
+  return canvas;
+}
+
+function drawHandDrawnOverlay(ctx, width, height, sketchStyle, frameDrawProgress, overlayOpacity, revealRatio) {
+  if (overlayOpacity <= 0.01) {
+    return;
+  }
+
+  const palette = SKETCH_PALETTES[sketchStyle] || SKETCH_PALETTES['ink-paper'];
+  const pad = Math.round(width * 0.045);
+  const innerW = width - pad * 2;
+  const innerH = height - pad * 2;
+  const perimeter = (innerW + innerH) * 2;
+
+  ctx.save();
+  ctx.globalAlpha = clamp(overlayOpacity, 0, 1);
+  ctx.strokeStyle = palette.strokeCss;
+  ctx.lineWidth = Math.max(2, Math.round(width * 0.0055));
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 手書き風の外枠を進行率に合わせて描き進める
+  ctx.setLineDash([perimeter * clamp(frameDrawProgress, 0.05, 1), perimeter]);
+  ctx.beginPath();
+  ctx.moveTo(pad, pad + 4);
+  ctx.quadraticCurveTo(width * 0.5, pad - 3, width - pad, pad + 2);
+  ctx.quadraticCurveTo(width - pad + 4, height * 0.5, width - pad - 2, height - pad);
+  ctx.quadraticCurveTo(width * 0.5, height - pad + 3, pad + 2, height - pad - 2);
+  ctx.quadraticCurveTo(pad - 3, height * 0.5, pad, pad + 4);
+  ctx.stroke();
+
+  // 内側の細線（スケッチの二重線ニュアンス）
+  ctx.setLineDash([perimeter * clamp(frameDrawProgress * 0.9, 0.05, 1), perimeter]);
+  ctx.lineWidth = Math.max(1, Math.round(width * 0.0028));
+  ctx.globalAlpha = clamp(overlayOpacity * 0.55, 0, 1);
+  const pad2 = pad + Math.round(width * 0.016);
+  ctx.strokeRect(pad2, pad2, width - pad2 * 2, height - pad2 * 2);
+
+  // 四隅のハンドドローンのキラリ・アクセント線
+  ctx.setLineDash([]);
+  ctx.globalAlpha = clamp(overlayOpacity * 0.9, 0, 1);
+  ctx.strokeStyle = palette.accentCss;
+  ctx.lineWidth = Math.max(2, Math.round(width * 0.005));
+  const tickLen = Math.round(width * 0.032);
+  ctx.beginPath();
+  ctx.moveTo(pad - 6, pad + tickLen);
+  ctx.lineTo(pad + tickLen, pad - 6);
+  ctx.moveTo(width - pad - tickLen, height - pad + 6);
+  ctx.lineTo(width - pad + 6, height - pad - tickLen);
+  ctx.stroke();
+
+  // スケッチから実写へ切り替わる斜め境界ライン
+  if (revealRatio > 0.01 && revealRatio < 0.99) {
+    const limit = revealRatio * (width + height);
+    ctx.strokeStyle = palette.accentCss;
+    ctx.lineWidth = Math.max(2.5, Math.round(width * 0.007));
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(limit, 0);
+    ctx.lineTo(0, limit);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/**
  * 1フレーム分の映像（素材・エフェクト・フェード・テロップ）をCanvasへ描画する。
  */
 export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, textOverride) {
@@ -220,15 +429,78 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
 
   const duration = Math.max(0.001, Number(cut.durationSec) || 1);
   const progress = clamp(localSec / duration, 0, 1);
+  const element = mediaEntry?.element;
+  const sourceWidth = mediaEntry?.width || 0;
+  const sourceHeight = mediaEntry?.height || 0;
+
+  if (cut.effect?.transitionIn === 'sketch-to-reality') {
+    const sketchStyle = cut.effect?.sketchStyle || 'ink-paper';
+    const sketchState = computeSketchRevealState(localSec, duration);
+    const palette = SKETCH_PALETTES[sketchStyle] || SKETCH_PALETTES['ink-paper'];
+
+    if (element && sourceWidth > 0 && sourceHeight > 0) {
+      const sketchCanvas = getOrCreateSketchCanvas(mediaEntry, width, height, sketchStyle);
+      ctx.drawImage(sketchCanvas, 0, 0, width, height);
+
+      if (sketchState.revealRatio > 0) {
+        ctx.save();
+        const limit = sketchState.revealRatio * (width + height);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(limit, 0);
+        ctx.lineTo(0, limit);
+        ctx.closePath();
+        ctx.clip();
+
+        const crop = computeCoverCropRect(
+          sourceWidth,
+          sourceHeight,
+          width,
+          height,
+          cut.effect?.motion || 'none',
+          progress
+        );
+        if ('filter' in ctx) {
+          ctx.filter = getCanvasFilterString(cut.effect?.filter);
+        }
+        ctx.drawImage(element, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+        if ('filter' in ctx) {
+          ctx.filter = 'none';
+        }
+        ctx.restore();
+      }
+    } else {
+      ctx.fillStyle = palette.strokeCss === '#f4f1ea' ? '#141418' : '#f4efe4';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = palette.strokeCss;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const fontSize = Math.round(width * 0.045);
+      ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif`;
+      ctx.fillText(cut.label || 'Sketch Preview', width / 2, height * 0.46, width * 0.82);
+      ctx.font = `400 ${Math.round(fontSize * 0.76)}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif`;
+      ctx.fillText('写真・動画を選ぶと自動で線画から変化します', width / 2, height * 0.53, width * 0.84);
+    }
+
+    drawHandDrawnOverlay(
+      ctx,
+      width,
+      height,
+      sketchStyle,
+      sketchState.frameDrawProgress,
+      sketchState.overlayOpacity,
+      sketchState.revealRatio
+    );
+
+    ctx.restore();
+    drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height);
+    return;
+  }
 
   if (cut.effect?.transitionIn === 'fade') {
     const fadeSec = Math.min(0.28, duration * 0.3);
     ctx.globalAlpha = clamp(localSec / fadeSec, 0.15, 1);
   }
-
-  const element = mediaEntry?.element;
-  const sourceWidth = mediaEntry?.width || 0;
-  const sourceHeight = mediaEntry?.height || 0;
 
   if (element && sourceWidth > 0 && sourceHeight > 0) {
     const crop = computeCoverCropRect(

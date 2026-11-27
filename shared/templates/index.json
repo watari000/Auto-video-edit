@@ -37,5 +37,18 @@
     "filterTag": "VINTAGE",
     "templatePath": "./sample-product-reel-03/template.json",
     "coverAsset": "./sample-product-reel-03/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-sketch-art-04",
+    "title": "Sketch to Reality・アート演出3カット",
+    "category": "ART / SKETCH",
+    "summary": "写真・動画から線画スケッチと手書き風枠線を自動生成し、斜めのスキャンラインで実写映像へ変化するアート系演出（6.6秒）です。",
+    "durationSec": 6.6,
+    "cutCount": 3,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 92–112",
+    "filterTag": "SKETCH REVEAL",
+    "templatePath": "./sample-sketch-art-04/template.json",
+    "coverAsset": "./sample-sketch-art-04/guide-assets/cut-01.svg"
   }
 ]
