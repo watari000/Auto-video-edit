@@ -234,6 +234,35 @@
   display: block;
 }
 
+.gallery-preview-canvas {
+  width: 144px;
+  aspect-ratio: 9 / 16;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: #09090b;
+  display: block;
+  cursor: pointer;
+}
+
+.gallery-live-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
+  background: rgba(9, 9, 11, 0.78);
+  color: #f4f1ea;
+  border: 1px solid rgba(255, 77, 28, 0.45);
+}
+
+.gallery-live-badge.is-paused {
+  border-color: rgba(244, 241, 234, 0.28);
+  color: #a19d95;
+}
+
 .gallery-index {
   position: absolute;
   top: 12px;

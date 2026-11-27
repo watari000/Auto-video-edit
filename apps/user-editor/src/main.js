@@ -76,15 +76,22 @@ async function bootstrap() {
   }
 
   const resourcePool = createMediaResourcePool();
-  window.addEventListener('beforeunload', () => {
-    resourcePool.disposeAll();
-  });
-
   let catalogItems = [];
   let activeTemplateId = null;
   let activePreviewController = null;
+  let activeGalleryController = null;
+
+  window.addEventListener('beforeunload', () => {
+    activeGalleryController?.stop();
+    activeGalleryController = null;
+    resourcePool.disposeAll();
+  });
 
   function releaseCurrentEditorSession() {
+    if (activeGalleryController) {
+      activeGalleryController.stop();
+      activeGalleryController = null;
+    }
     if (activePreviewController) {
       activePreviewController.stop();
       activePreviewController = null;
@@ -101,9 +108,14 @@ async function bootstrap() {
     navGalleryBtn.classList.add('hidden');
     readyCounter.classList.add('hidden');
 
-    renderGalleryView(galleryContainer, catalogItems, activeTemplateId, (selectedId) => {
-      openTemplate(selectedId, true);
-    });
+    activeGalleryController = renderGalleryView(
+      galleryContainer,
+      catalogItems,
+      activeTemplateId,
+      (selectedId) => {
+        openTemplate(selectedId, true);
+      }
+    );
 
     if (syncHash && window.location.hash !== '#gallery' && window.location.hash !== '') {
       window.location.hash = 'gallery';
