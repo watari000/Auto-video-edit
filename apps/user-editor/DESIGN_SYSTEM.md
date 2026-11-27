@@ -42,3 +42,11 @@
 ## 4. Performance & iOS Safari Considerations
 - フィルムグレイン（`.film-grain`）は `pointer-events: none` と軽量な静的インラインSVGデータURIのみを使用し、スクロール時の再描画負荷を抑える。
 - `backdrop-filter` はトップナビゲーションのみに限定し、キャンバス描画や動画書き出し処理（`video-engine.js` / `video-exporter.js`）と競合しないよう配慮している。
+
+---
+
+## 5. Dual Theme System（ダーク／ライト切替）
+ヘッダー右上の `THEME: DARK / LIGHT` トグルから、2つのエディトリアルテーマを切り替えられる（設定は `localStorage` の `kinetic-atelier-theme` に保存）。
+- **Dark（デフォルト：Obsidian Studio）**: 映像編集スイート向けの暗色基調。
+- **Light（Warm Editorial Paper）**: 生成りの紙面（`#f4efe6`）× 墨黒文字（`#181512`）によるカフェ雑誌風の明色テーマ。
+- **不変の黒ベゼル**: ライトテーマ時でも、9:16 プレビューモニター（`.monitor-bezel`）と構図ガイドビューファインダー（`.shot-viewfinder`）は暗色を維持し、映像・図解のコントラストを損なわない設計としている。

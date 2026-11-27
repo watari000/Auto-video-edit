@@ -111,6 +111,44 @@
   background: var(--sem-ok-soft);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-primary);
+  background: var(--bg-panel);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-xs);
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--dur-fast) var(--ease-out-expo),
+    background var(--dur-fast) var(--ease-out-expo),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent-champagne);
+  background: var(--bg-panel-hover);
+}
+
+.theme-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-champagne);
+}
+
 /* === Hero Masthead === */
 .hero-masthead {
   padding: 40px 0 28px;
@@ -175,13 +213,13 @@
 
 .app-banner.is-info {
   border-left-color: var(--sem-ok);
-  color: #cbd5e1;
+  color: var(--banner-info-ink);
 }
 
 .app-banner.is-error {
   border-left-color: var(--sem-err);
   background: var(--sem-err-soft);
-  color: #fecdd3;
+  color: var(--notice-err-ink);
 }
 
 /* === Section Architecture === */
@@ -616,19 +654,19 @@
 .notice-ok {
   background: var(--sem-ok-soft);
   border-left-color: var(--sem-ok);
-  color: #a7f3d0;
+  color: var(--notice-ok-ink);
 }
 
 .notice-tip {
   background: var(--sem-tip-soft);
   border-left-color: var(--sem-tip);
-  color: #fde68a;
+  color: var(--notice-tip-ink);
 }
 
 .notice-error {
   background: var(--sem-err-soft);
   border-left-color: var(--sem-err);
-  color: #fecdd3;
+  color: var(--notice-err-ink);
 }
 
 /* === Filmstrip Slide Trimmer === */
@@ -863,12 +901,12 @@
 }
 
 .btn-primary {
-  background: var(--ink-primary);
-  color: #09090b;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-ink);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #ffffff;
+  opacity: 0.9;
 }
 
 .btn-secondary {

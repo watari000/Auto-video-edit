@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KINETIC ATELIER｜ローカル自動編集スタジオ</title>
+  <script>
+    try {
+      if (localStorage.getItem('kinetic-atelier-theme') === 'light') {
+        document.documentElement.dataset.theme = 'light';
+      }
+    } catch {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -28,7 +35,19 @@
         <a href="#step-preview" class="nav-link"><span>03</span>モニター確認</a>
         <a href="#step-export" class="nav-link"><span>04</span>書き出し</a>
       </div>
-      <div id="ready-counter" class="ready-counter">0 / 3 CUTS READY</div>
+      <div class="nav-actions">
+        <button
+          type="button"
+          id="theme-toggle-btn"
+          class="theme-toggle-btn"
+          aria-label="カラーテーマを切り替え"
+          aria-pressed="false"
+        >
+          <span class="theme-toggle-dot" aria-hidden="true"></span>
+          <span id="theme-toggle-label">THEME: DARK</span>
+        </button>
+        <div id="ready-counter" class="ready-counter">0 / 3 CUTS READY</div>
+      </div>
     </div>
   </nav>
 

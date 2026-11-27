@@ -6,8 +6,42 @@ import { initPreviewSection } from './preview/canvas-preview.js';
 import { initExporterSection } from './exporter/video-exporter.js';
 
 const DEFAULT_TEMPLATE_URL = '../../shared/templates/sample-cafe-01/template.json';
+const THEME_STORAGE_KEY = 'kinetic-atelier-theme';
+
+function initThemeToggle() {
+  const toggleBtn = document.getElementById('theme-toggle-btn');
+  const toggleLabel = document.getElementById('theme-toggle-label');
+  if (!toggleBtn || !toggleLabel) {
+    return;
+  }
+
+  const syncUi = (theme) => {
+    const isLight = theme === 'light';
+    if (isLight) {
+      document.documentElement.dataset.theme = 'light';
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
+    toggleBtn.setAttribute('aria-pressed', String(isLight));
+    toggleLabel.textContent = isLight ? 'THEME: LIGHT' : 'THEME: DARK';
+  };
+
+  const initialTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  syncUi(initialTheme);
+
+  toggleBtn.addEventListener('click', () => {
+    const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    syncUi(nextTheme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch {
+      // プライベートブラウズ等でストレージ制限がある場合も動作を止めない
+    }
+  });
+}
 
 async function bootstrap() {
+  initThemeToggle();
   const banner = document.getElementById('app-banner');
   const readyCounter = document.getElementById('ready-counter');
   const guideEl = document.getElementById('guide-container');

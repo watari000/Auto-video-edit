@@ -26,10 +26,20 @@
   /* === Semantic === */
   --sem-ok: #34d399;
   --sem-ok-soft: rgba(52, 211, 153, 0.12);
+  --notice-ok-ink: #a7f3d0;
   --sem-tip: #f59e0b;
   --sem-tip-soft: rgba(245, 158, 11, 0.12);
+  --notice-tip-ink: #fde68a;
   --sem-err: #fb7185;
   --sem-err-soft: rgba(251, 113, 133, 0.12);
+  --notice-err-ink: #fecdd3;
+  --banner-info-ink: #cbd5e1;
+
+  /* === Interactive Controls === */
+  --btn-primary-bg: #f4f1ea;
+  --btn-primary-ink: #09090b;
+  --bg-glow-1: rgba(212, 175, 122, 0.08);
+  --bg-glow-2: rgba(255, 77, 28, 0.06);
 
   /* === Typography === */
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
@@ -50,6 +60,52 @@
   --dur-slow: 640ms;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* === Surfaces (Warm Editorial Paper) === */
+  --bg-canvas: #f4efe6;
+  --bg-elevated: #fbf8f3;
+  --bg-panel: #efe9de;
+  --bg-panel-hover: #e6ddd0;
+  --bg-glass: rgba(244, 239, 230, 0.86);
+
+  /* === Hairlines === */
+  --line-subtle: rgba(24, 21, 18, 0.11);
+  --line-strong: rgba(24, 21, 18, 0.26);
+  --line-accent: rgba(154, 107, 47, 0.45);
+
+  /* === Ink === */
+  --ink-primary: #181512;
+  --ink-secondary: #585147;
+  --ink-muted: #847b6f;
+
+  /* === Signal Accents === */
+  --accent-signal: #d93814;
+  --accent-signal-hover: #bc2d0d;
+  --accent-signal-soft: rgba(217, 56, 20, 0.12);
+  --accent-champagne: #9a6b2f;
+  --accent-champagne-soft: rgba(154, 107, 47, 0.12);
+
+  /* === Semantic === */
+  --sem-ok: #059669;
+  --sem-ok-soft: rgba(5, 150, 105, 0.1);
+  --notice-ok-ink: #065f46;
+  --sem-tip: #b45309;
+  --sem-tip-soft: rgba(180, 83, 9, 0.11);
+  --notice-tip-ink: #92400e;
+  --sem-err: #be123c;
+  --sem-err-soft: rgba(190, 18, 60, 0.1);
+  --notice-err-ink: #9f1239;
+  --banner-info-ink: #1e293b;
+
+  /* === Interactive Controls === */
+  --btn-primary-bg: #181512;
+  --btn-primary-ink: #fbf8f3;
+  --bg-glow-1: rgba(154, 107, 47, 0.08);
+  --bg-glow-2: rgba(217, 56, 20, 0.05);
+}
+
 *,
 *::before,
 *::after {
@@ -67,13 +123,16 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   background:
-    radial-gradient(1200px 600px at 82% -8%, rgba(212, 175, 122, 0.08), transparent 60%),
-    radial-gradient(900px 520px at 10% 15%, rgba(255, 77, 28, 0.06), transparent 55%),
+    radial-gradient(1200px 600px at 82% -8%, var(--bg-glow-1), transparent 60%),
+    radial-gradient(900px 520px at 10% 15%, var(--bg-glow-2), transparent 55%),
     var(--bg-canvas);
   color: var(--ink-primary);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  transition:
+    background-color 260ms var(--ease-out-expo),
+    color 260ms var(--ease-out-expo);
 }
 
 /* 静止SVGノイズによる微細なフィルムグレイン質感（iOS Safariでも再描画負荷ゼロ） */
