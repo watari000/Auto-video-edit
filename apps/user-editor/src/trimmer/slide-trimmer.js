@@ -819,9 +819,9 @@ function renderMatrixCodeControls(controlsBox, cut, mediaEntry, matrixMeta, onSt
     <div class="beat-control-row">
       <label class="trim-label" for="matrix-density-select">コード文字の細かさ</label>
       <select id="matrix-density-select" class="quality-select">
-        <option value="fine">超高精細（輪郭がより細密）</option>
-        <option value="standard" selected>標準（輪郭と文字のバランス・おすすめ）</option>
-        <option value="bold">大きめ（文字の迫力重視）</option>
+        <option value="fine">超高精細（108列・写真や顔がより鮮明）</option>
+        <option value="standard" selected>標準（80列・くっきりバランス・おすすめ）</option>
+        <option value="bold">大きめ（52列・文字サイズ重視）</option>
       </select>
     </div>
     <div class="beat-control-row">

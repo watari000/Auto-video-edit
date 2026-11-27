@@ -50,6 +50,7 @@ import {
 import {
   computeGridEdgeMap,
   computeMatrixWorldState,
+  normalizeLumaContrast,
   sampleMatrixCell,
 } from '../apps/user-editor/lib/matrix-code-engine.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
@@ -618,4 +619,9 @@ test('sample-matrix-code-09 defaults audio to OFF and matrix-code-engine transit
   const edges = computeGridEdgeMap(lumaGrid, 3, 3);
   assert.ok(edges[1 * 3 + 1] > 0.8);
   assert.equal(edges[1 * 3 + 0], 0);
+
+  const stretched = normalizeLumaContrast(new Float32Array([0.2, 0.4, 0.6]));
+  assert.equal(stretched[0], 0);
+  assert.ok(Math.abs(stretched[1] - 0.5) < 1e-6);
+  assert.equal(stretched[2], 1);
 });

@@ -1,21 +1,21 @@
 /**
  * 2秒後の一瞬グリッチ（「ザザッ」）の直後、黒と緑のデジタルコードだけで
- * 写真や動画の輪郭・シルエットがくっきり浮かび上がり、文字が流れて脈打つ表現を描画するエンジン。
+ * 写真や動画の元の姿・輪郭がはっきり判別できるように描くエンジン。
  */
 
 const MATRIX_GLYPHS =
   '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const DENSITY_CONFIG = {
-  fine: { cols: 72, fontRatio: 1.08 },
-  standard: { cols: 52, fontRatio: 1.1 },
-  bold: { cols: 36, fontRatio: 1.14 },
+  fine: { cols: 108, fontRatio: 1.08 },
+  standard: { cols: 80, fontRatio: 1.1 },
+  bold: { cols: 52, fontRatio: 1.14 },
 };
 
 const VISIBILITY_CONFIG = {
-  silhouette: { edgeBoost: 1.45, lumaWeight: 0.48, floorCutoff: 0.14 },
-  balanced: { edgeBoost: 1.15, lumaWeight: 0.65, floorCutoff: 0.1 },
-  rain: { edgeBoost: 0.9, lumaWeight: 0.72, floorCutoff: 0.06 },
+  silhouette: { gamma: 1.45, edgeBoost: 0.45, floorCutoff: 0.1, streamMix: 0.14 },
+  balanced: { gamma: 1.25, edgeBoost: 0.35, floorCutoff: 0.06, streamMix: 0.22 },
+  rain: { gamma: 1.1, edgeBoost: 0.25, floorCutoff: 0.03, streamMix: 0.34 },
 };
 
 let reusableLumaCanvas = null;
@@ -69,14 +69,13 @@ export function computeMatrixWorldState(
 }
 
 /**
- * 指定のセル(col, row)におけるコード文字と、輪郭上で文字が流れるような微細なデータストリーム波を返す純粋関数。
+ * 指定のセル(col, row)におけるコード文字と微細なデータ流れ強度(0..1)を返す純粋関数。
  */
 export function sampleMatrixCell(col, row, totalRows, elapsedMatrixSec) {
-  // 縦に落ちる雨ではなく、輪郭・映像の上をデータ波が流れて文字が入れ替わる演出
   const streamWave =
-    0.5 + 0.5 * Math.sin(col * 0.35 + row * 0.22 - elapsedMatrixSec * 6.5);
-  const changeRate = 8 + hash2d(col, row) * 8;
-  const glyphTick = Math.floor(elapsedMatrixSec * changeRate + hash2d(row, col) * 17);
+    0.5 + 0.5 * Math.sin(col * 0.28 + row * 0.18 - elapsedMatrixSec * 6.0);
+  const changeRate = 7 + hash2d(col, row) * 7;
+  const glyphTick = Math.floor(elapsedMatrixSec * changeRate + hash2d(row, col) * 19);
   const glyphIdx = Math.floor(hash2d(col * 37 + row * 13, glyphTick) * MATRIX_GLYPHS.length);
   const glyph = MATRIX_GLYPHS[glyphIdx] || '0';
 
@@ -100,10 +99,41 @@ export function computeGridEdgeMap(lumaGrid, cols, rows) {
       const x1 = x + 1 < cols ? x + 1 : cols - 1;
       const gx = Math.abs(lumaGrid[y * cols + x1] - lumaGrid[y * cols + x0]);
       const gy = Math.abs(lumaGrid[y1 * cols + x] - lumaGrid[y0 * cols + x]);
-      edges[y * cols + x] = Math.min(1, (gx + gy) * 1.9);
+      edges[y * cols + x] = Math.min(1, (gx + gy) * 1.5);
     }
   }
   return edges;
+}
+
+/**
+ * 1フレーム分の輝度配列を 5%〜95% の実効レンジへ自動ストレッチし、
+ * 暗い映像や低コントラスト映像でも黒と緑の階調がくっきり出るようにする。
+ */
+export function normalizeLumaContrast(lumaGrid) {
+  const n = lumaGrid.length;
+  const out = new Float32Array(n);
+  if (n === 0) {
+    return out;
+  }
+
+  let minVal = 1;
+  let maxVal = 0;
+  for (let i = 0; i < n; i++) {
+    const v = lumaGrid[i];
+    if (v < minVal) minVal = v;
+    if (v > maxVal) maxVal = v;
+  }
+
+  const span = maxVal - minVal;
+  if (span < 0.08) {
+    out.set(lumaGrid);
+    return out;
+  }
+
+  for (let i = 0; i < n; i++) {
+    out[i] = Math.min(1, Math.max(0, (lumaGrid[i] - minVal) / span));
+  }
+  return out;
 }
 
 function getReusableCanvas(existing, width, height) {
@@ -151,7 +181,7 @@ function drawMatrixGlitchBurst(ctx, width, height, progress, intensity) {
 }
 
 /**
- * 1フレーム分の通常映像→一瞬グリッチ→コードだけで輪郭が浮かび上がる世界を描画する。
+ * 1フレーム分の通常映像→一瞬グリッチ→高精細な黒×緑デジタルコード映像を描画する。
  */
 export function drawMatrixCodeComposite(
   ctx,
@@ -182,29 +212,30 @@ export function drawMatrixCodeComposite(
   const vCfg = VISIBILITY_CONFIG[visibility] || VISIBILITY_CONFIG.silhouette;
   const cols = dCfg.cols;
   const cellW = width / cols;
-  const cellH = cellW * 1.12;
+  const cellH = cellW * 1.08;
   const rows = Math.ceil(height / cellH);
 
   reusableLumaCanvas = getReusableCanvas(reusableLumaCanvas, cols, rows);
   const lumaCtx = reusableLumaCanvas.getContext('2d', { willReadFrequently: true });
-  const lumaGrid = new Float32Array(cols * rows);
+  const rawLumaGrid = new Float32Array(cols * rows);
 
   if (lumaCtx) {
     lumaCtx.drawImage(sourceElement, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, cols, rows);
     const rgba = lumaCtx.getImageData(0, 0, cols, rows).data;
-    for (let i = 0; i < lumaGrid.length; i++) {
+    for (let i = 0; i < rawLumaGrid.length; i++) {
       const p = i * 4;
-      lumaGrid[i] = (0.299 * rgba[p] + 0.587 * rgba[p + 1] + 0.114 * rgba[p + 2]) / 255;
+      rawLumaGrid[i] = (0.299 * rgba[p] + 0.587 * rgba[p + 1] + 0.114 * rgba[p + 2]) / 255;
     }
   }
 
+  const lumaGrid = normalizeLumaContrast(rawLumaGrid);
   const edgeGrid = computeGridEdgeMap(lumaGrid, cols, rows);
 
   ctx.save();
-  ctx.fillStyle = '#020503';
+  ctx.fillStyle = '#010402';
   ctx.fillRect(0, 0, width, height);
 
-  const fontSize = Math.max(6, Math.round(cellW * dCfg.fontRatio));
+  const fontSize = Math.max(5, Math.round(cellW * dCfg.fontRatio));
   ctx.font = `700 ${fontSize}px "JetBrains Mono", ui-monospace, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -215,31 +246,30 @@ export function drawMatrixCodeComposite(
     const cy = (row + 0.5) * cellH;
     for (let col = 0; col < cols; col++) {
       const idx = row * cols + col;
-      const luma = lumaGrid[idx];
+      const luma = Math.pow(lumaGrid[idx], vCfg.gamma);
       const edge = edgeGrid[idx];
 
-      // 輪郭エッジ＋明暗でコードの明るさを決め、暗い背景は真っ黒に残す
-      const baseSignal = Math.min(1, edge * vCfg.edgeBoost + luma * vCfg.lumaWeight);
-      if (baseSignal < vCfg.floorCutoff) {
+      // 飽和を防ぎ、元映像の明暗階調を素直にコードの明るさへ反映する
+      const baseTone = Math.min(1, luma * 0.88 + edge * vCfg.edgeBoost);
+      if (baseTone < vCfg.floorCutoff) {
         continue;
       }
 
       const { glyph, rainIntensity } = sampleMatrixCell(col, row, rows, elapsedMatrixSec);
-      const shimmer = 0.78 + rainIntensity * 0.28;
-      const energy = Math.min(1, baseSignal * shimmer);
+      // 文字が流れる感覚は保ちつつ、元映像の明暗を壊さないよう波の強さを抑える
+      const waveFactor = 1 - vCfg.streamMix * (1 - rainIntensity);
+      const brightness = Math.min(1, baseTone * waveFactor);
 
-      if (edge > 0.28 || energy > 0.82) {
-        // 輪郭線や強いハイライトは白みがかった鮮やかなネオン緑でくっきり描く
-        const whiteMix = Math.min(1, Math.max(0, (energy - 0.65) * 2.2));
-        const r = Math.round(40 + whiteMix * 175);
+      if (brightness > 0.78) {
+        const highlight = (brightness - 0.78) / 0.22;
+        const r = Math.round(35 + highlight * 170);
         const g = 255;
-        const b = Math.round(90 + whiteMix * 140);
+        const b = Math.round(80 + highlight * 145);
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       } else {
-        const g = Math.round(75 + energy * 170);
-        const b = Math.round(18 + energy * 62);
-        const alpha = Math.min(1, 0.28 + energy * 0.72).toFixed(2);
-        ctx.fillStyle = `rgba(8, ${g}, ${b}, ${alpha})`;
+        const g = Math.round(28 + brightness * 225);
+        const b = Math.round(8 + brightness * 68);
+        ctx.fillStyle = `rgb(4, ${g}, ${b})`;
       }
 
       ctx.fillText(glyph, (col + 0.5) * cellW, cy);
