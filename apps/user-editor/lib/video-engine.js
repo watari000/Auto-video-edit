@@ -995,18 +995,26 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
 /**
  * 実行ブラウザがサポートしているMediaRecorderのMIMEタイプをMP4優先で選択する。
  */
-export function selectSupportedRecorderMimeType() {
+export function selectSupportedRecorderMimeType(includeAudio = false) {
   if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
     return null;
   }
 
-  const candidates = [
-    'video/mp4;codecs=avc1.42E01E',
-    'video/mp4',
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-  ];
+  const candidates = includeAudio
+    ? [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+      ]
+    : [
+        'video/mp4;codecs=avc1.42E01E',
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm',
+      ];
 
   for (const mimeType of candidates) {
     if (MediaRecorder.isTypeSupported(mimeType)) {

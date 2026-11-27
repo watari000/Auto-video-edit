@@ -30,7 +30,6 @@ export function initExporterSection(container, template, state, resourcePool, be
         <div>
           <label for="export-scale-select" class="quality-label">RENDER RESOLUTION // iOS SAFARI SAFE</label>
           <select id="export-scale-select" class="quality-select">
-            <option value="0.5">超スムーズ 540×960（iPhone最速・カクつき防止）</option>
             <option value="0.6667" selected>軽量 720×1280（スマホ標準）</option>
             <option value="1">高画質 1080×1920（PC推奨・フルHD）</option>
           </select>
@@ -101,8 +100,8 @@ export function initExporterSection(container, template, state, resourcePool, be
     resultBox.classList.add('hidden');
     resultBox.innerHTML = '';
 
-    const mimeType = selectSupportedRecorderMimeType();
-    if (mimeType === null || typeof HTMLCanvasElement.prototype.captureStream !== 'function') {
+    const baseMimeType = selectSupportedRecorderMimeType(false);
+    if (baseMimeType === null || typeof HTMLCanvasElement.prototype.captureStream !== 'function') {
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `
         <p class="notice notice-error">
@@ -171,6 +170,7 @@ export function initExporterSection(container, template, state, resourcePool, be
       }
 
       stream = new MediaStream(tracks);
+      const mimeType = selectSupportedRecorderMimeType(exportedWithAudio) ?? baseMimeType;
       const videoBitsPerSecond = computeAdaptiveVideoBitrate(totalDurationSec, width);
       const recorderOptions = mimeType
         ? { mimeType, videoBitsPerSecond }

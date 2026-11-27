@@ -20,6 +20,7 @@ import {
   getCanvasFilterString,
   parseKineticTokens,
   resolveCutAtTime,
+  selectSupportedRecorderMimeType,
   shouldUseFastOverlayFilter,
 } from '../apps/user-editor/lib/video-engine.js';
 import {
@@ -365,4 +366,38 @@ test('shouldUseFastOverlayFilter enables GPU overlay fallback on iOS Safari and 
     ),
     false
   );
+});
+
+test('selectSupportedRecorderMimeType selects H.264+AAC MP4 when audio is included', () => {
+  const originalMediaRecorder = globalThis.MediaRecorder;
+  try {
+    const supported = new Set([
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+    ]);
+    globalThis.MediaRecorder = {
+      isTypeSupported(type) {
+        return supported.has(type);
+      },
+    };
+    assert.equal(
+      selectSupportedRecorderMimeType(true),
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2'
+    );
+    assert.equal(
+      selectSupportedRecorderMimeType(false),
+      'video/mp4;codecs=avc1.42E01E'
+    );
+
+    supported.delete('video/mp4;codecs=avc1.42E01E,mp4a.40.2');
+    assert.equal(selectSupportedRecorderMimeType(true), 'video/mp4');
+  } finally {
+    if (originalMediaRecorder === undefined) {
+      delete globalThis.MediaRecorder;
+    } else {
+      globalThis.MediaRecorder = originalMediaRecorder;
+    }
+  }
 });
