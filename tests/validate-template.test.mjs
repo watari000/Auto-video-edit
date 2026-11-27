@@ -295,30 +295,32 @@ test('computeFlashOverlayAlpha peaks at 0s and decays to 0 after 0.09s', () => {
   assert.equal(computeFlashOverlayAlpha(0.5), 0);
 });
 
-test('computeBeatEnvelopeFromPcm detects beat bursts and computeBeatBacklightState glows softly on beats', () => {
-  const sampleRate = 3000;
+test('computeBeatEnvelopeFromPcm tracks melody-band phrases and computeBeatBacklightState glows smoothly', () => {
+  const sampleRate = 8000;
   const silent = new Float32Array(sampleRate * 2);
   const silentResult = computeBeatEnvelopeFromPcm(silent, sampleRate);
   assert.equal(silentResult.peakCount, 0);
 
-  const beats = new Float32Array(sampleRate * 2);
-  // 0.3s, 0.8s, 1.3s, 1.8s に強いビートバーストを配置
-  for (const beatSec of [0.3, 0.8, 1.3, 1.8]) {
-    const start = Math.floor(beatSec * sampleRate);
-    for (let j = 0; j < 150 && start + j < beats.length; j++) {
-      beats[start + j] = Math.sin(j * 0.6) * 0.95;
+  const melody = new Float32Array(sampleRate * 3);
+  // 0.3s, 1.1s, 1.9s に主旋律帯域（600Hz）のフレーズを配置
+  for (const phraseSec of [0.3, 1.1, 1.9]) {
+    const start = Math.floor(phraseSec * sampleRate);
+    for (let j = 0; j < Math.floor(sampleRate * 0.35) && start + j < melody.length; j++) {
+      melody[start + j] = Math.sin((2 * Math.PI * 600 * j) / sampleRate) * 0.85;
     }
   }
-  const beatResult = computeBeatEnvelopeFromPcm(beats, sampleRate);
-  assert.ok(beatResult.peakCount >= 3, `Expected >= 3 peaks, got ${beatResult.peakCount}`);
+  const melodyResult = computeBeatEnvelopeFromPcm(melody, sampleRate);
+  assert.ok(melodyResult.peakCount >= 2, `Expected >= 2 melody peaks, got ${melodyResult.peakCount}`);
 
-  const calm = computeBeatBacklightState(0.15, 0.6);
-  assert.equal(calm.alpha, 0);
-  assert.equal(calm.spreadRatio, 0);
-  assert.equal(calm.edgeLineAlpha, 0);
+  const quiet = computeBeatBacklightState(0.02, 0.6);
+  assert.equal(quiet.alpha, 0);
+  assert.equal(quiet.spreadRatio, 0);
+  assert.equal(quiet.edgeLineAlpha, 0);
 
-  const hit = computeBeatBacklightState(0.95, 0.6);
-  assert.ok(hit.alpha > 0.2 && hit.alpha <= 0.58);
-  assert.ok(hit.spreadRatio > 0.05 && hit.spreadRatio <= 0.14);
-  assert.ok(hit.edgeLineAlpha > 0.2 && hit.edgeLineAlpha <= 0.75);
+  const gentle = computeBeatBacklightState(0.4, 0.6);
+  const swell = computeBeatBacklightState(0.95, 0.6);
+  assert.ok(gentle.alpha > 0.06 && gentle.alpha < swell.alpha);
+  assert.ok(swell.alpha <= 0.56);
+  assert.ok(swell.spreadRatio <= 0.15);
+  assert.ok(swell.edgeLineAlpha <= 0.72);
 });

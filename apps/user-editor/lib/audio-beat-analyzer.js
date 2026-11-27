@@ -5,7 +5,7 @@ function clamp(value, min, max) {
 }
 
 /**
- * モノラルPCM配列から音圧の立ち上がり（ビート強度エンベロープ 0..1）を計算する（純粋関数）。
+ * モノラルPCM配列から主旋律帯域（260Hz〜2,600Hz）の音圧を抽出し、滑らかなエンベロープ（0..1）を返す（純粋関数）。
  */
 export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz = BEAT_ENVELOPE_HZ) {
   if (!channelData || !channelData.length || !sampleRate || sampleRate <= 0) {
@@ -20,52 +20,64 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
     return { envelope: new Float32Array(0), envelopeHz, peakCount: 0, durationSec };
   }
 
+  // 主旋律（ボーカル・リード楽器）が集中する260Hz〜2,600Hz付近を残し、キック低音や高域ノイズを抑える
+  const hpHz = Math.min(260, sampleRate * 0.25);
+  const lpHz = Math.min(2600, sampleRate * 0.42);
+  const dt = 1 / sampleRate;
+  const rcHp = 1 / (2 * Math.PI * Math.max(1, hpHz));
+  const rcLp = 1 / (2 * Math.PI * Math.max(1, lpHz));
+  const alphaHp = rcHp / (rcHp + dt);
+  const alphaLp = dt / (rcLp + dt);
+
+  let hpPrevIn = 0;
+  let hpPrevOut = 0;
+  let lpPrevOut = 0;
+
   const rms = new Float32Array(frameCount);
   for (let i = 0; i < frameCount; i++) {
     const start = i * windowSize;
     let sumSq = 0;
     for (let j = 0; j < windowSize; j++) {
       const sample = channelData[start + j];
-      sumSq += sample * sample;
+      const hpOut = alphaHp * (hpPrevOut + sample - hpPrevIn);
+      hpPrevIn = sample;
+      hpPrevOut = hpOut;
+
+      const lpOut = lpPrevOut + alphaLp * (hpOut - lpPrevOut);
+      lpPrevOut = lpOut;
+      sumSq += lpOut * lpOut;
     }
     rms[i] = Math.sqrt(sumSq / windowSize);
   }
 
-  const lookback = Math.max(1, Math.round(envelopeHz * 0.4));
-  const rawFlux = new Float32Array(frameCount);
-  let maxFlux = 0;
-
-  for (let i = 0; i < frameCount; i++) {
-    const from = Math.max(0, i - lookback);
-    let sum = 0;
-    for (let k = from; k < i; k++) {
-      sum += rms[k];
-    }
-    const localAvg = i > from ? sum / (i - from) : 0;
-    const onset = Math.max(0, rms[i] - localAvg * 0.85) + rms[i] * 0.25;
-    rawFlux[i] = onset;
-    if (onset > maxFlux) {
-      maxFlux = onset;
-    }
-  }
+  const sorted = Float32Array.from(rms).sort();
+  const p15 = sorted[Math.floor((frameCount - 1) * 0.15)];
+  const p95 = sorted[Math.floor((frameCount - 1) * 0.95)];
 
   const envelope = new Float32Array(frameCount);
-  if (maxFlux <= 1e-6) {
+  if (p95 <= 1e-6) {
     return { envelope, envelopeHz, peakCount: 0, durationSec };
   }
 
+  const span = Math.max(p95 - p15, p95 * 0.35, 1e-6);
+  let smoothed = 0;
+
   for (let i = 0; i < frameCount; i++) {
-    envelope[i] = clamp(rawFlux[i] / maxFlux, 0, 1);
+    const normalized = clamp((rms[i] - p15 * 0.85) / span, 0, 1);
+    // 立ち上がりは素早く、減衰は余韻を持たせて主旋律の歌い回しに沿って滑らかに光らせる
+    const coeff = normalized > smoothed ? 0.48 : 0.18;
+    smoothed += coeff * (normalized - smoothed);
+    envelope[i] = clamp(smoothed, 0, 1);
   }
 
-  const minPeakGapFrames = Math.max(1, Math.round(envelopeHz * 0.22));
+  const minPeakGapFrames = Math.max(1, Math.round(envelopeHz * 0.35));
   let peakCount = 0;
   let lastPeakFrame = -minPeakGapFrames;
 
   for (let i = 1; i < frameCount - 1; i++) {
     const cur = envelope[i];
     if (
-      cur > 0.45 &&
+      cur > 0.55 &&
       cur >= envelope[i - 1] &&
       cur >= envelope[i + 1] &&
       i - lastPeakFrame >= minPeakGapFrames
@@ -79,7 +91,7 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
 }
 
 /**
- * 解析済みビート配列から指定時刻（秒）のビート強度（0..1）を取得する。
+ * 解析済み主旋律配列から指定時刻（秒）の強度（0..1）を取得する。
  */
 export function sampleBeatStrengthAt(beatAnalysis, timeSec) {
   const envelope = beatAnalysis?.envelope;
@@ -92,21 +104,21 @@ export function sampleBeatStrengthAt(beatAnalysis, timeSec) {
 }
 
 /**
- * ビート強度に応じて画面の縁がバックライトのように微かに発光する状態を返す（純粋関数）。
+ * 主旋律の抑揚に応じて画面の縁がバックライトのように滑らかに発光する状態を返す（純粋関数）。
  */
 export function computeBeatBacklightState(beatStrength, intensity = 0.6) {
   const strength = clamp(Number(beatStrength) || 0, 0, 1);
   const safeIntensity = clamp(Number(intensity) || 0, 0, 1.5);
 
-  if (strength < 0.28 || safeIntensity <= 0) {
+  if (strength < 0.04 || safeIntensity <= 0) {
     return { alpha: 0, spreadRatio: 0, edgeLineAlpha: 0 };
   }
 
-  const excess = (strength - 0.28) / 0.72;
+  const curved = Math.pow(strength, 1.35);
   return {
-    alpha: Number(clamp(0.14 + 0.34 * excess * safeIntensity, 0, 0.58).toFixed(4)),
-    spreadRatio: Number(clamp(0.055 + 0.055 * excess * safeIntensity, 0.04, 0.14).toFixed(4)),
-    edgeLineAlpha: Number(clamp(0.2 + 0.45 * excess * safeIntensity, 0, 0.75).toFixed(4)),
+    alpha: Number(clamp(0.06 + 0.42 * curved * safeIntensity, 0, 0.56).toFixed(4)),
+    spreadRatio: Number(clamp(0.045 + 0.075 * curved * safeIntensity, 0.04, 0.15).toFixed(4)),
+    edgeLineAlpha: Number(clamp(0.08 + 0.52 * curved * safeIntensity, 0, 0.72).toFixed(4)),
   };
 }
 

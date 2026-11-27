@@ -840,9 +840,14 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
 
   if (cut.effect?.motion === 'beat-glow') {
     const hasAnalyzedBeats = Boolean(mediaEntry?.beatAnalysis?.envelope?.length);
+    // 再生・書き出し中の音とズレないよう、実際のvideo再生時刻を優先して主旋律強度を参照する
+    const actualVideoTime =
+      mediaEntry?.mediaType === 'video' && Number.isFinite(mediaEntry.element?.currentTime)
+        ? mediaEntry.element.currentTime
+        : (mediaEntry?.trimStartSec || 0) + localSec;
     const beatStrength = hasAnalyzedBeats
-      ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, (mediaEntry.trimStartSec || 0) + localSec)
-      : Math.pow(1 - ((((localSec % 0.5) + 0.5) % 0.5) / 0.5), 3);
+      ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, actualVideoTime)
+      : 0.5 + 0.5 * Math.sin(localSec * 2.6);
     const backlight = computeBeatBacklightState(beatStrength, mediaEntry?.glowIntensity ?? 0.6);
     drawBeatBacklightOverlay(ctx, width, height, backlight, mediaEntry?.glowColor || 'warm-gold');
   }

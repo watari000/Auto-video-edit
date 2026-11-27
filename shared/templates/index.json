@@ -79,14 +79,14 @@
   },
   {
     "id": "sample-dance-beat-07",
-    "title": "Dance Beat Glow・縁バックライト演出",
-    "category": "DANCE / AUDIO SYNC",
-    "summary": "ダンス動画の音声ビートをブラウザで自動解析し、映像は固定のまま縁だけがバックライトのように微かに光ります。尺調整・音あり保存対応。",
+    "title": "Dance Melody Glow・主旋律バックライト演出",
+    "category": "DANCE / MELODY SYNC",
+    "summary": "ダンス動画の主旋律（メロディ帯域）をブラウザで自動解析し、歌やメロディの抑揚に沿って縁がバックライトのように滑らかに光ります。",
     "durationSec": 8.0,
     "cutCount": 1,
     "aspectRatio": "9:16",
-    "bpmLabel": "AUTO BEAT",
-    "filterTag": "BEAT GLOW",
+    "bpmLabel": "MELODY SYNC",
+    "filterTag": "MELODY GLOW",
     "templatePath": "./sample-dance-beat-07/template.json",
     "coverAsset": "./sample-dance-beat-07/guide-assets/cut-01.svg"
   }

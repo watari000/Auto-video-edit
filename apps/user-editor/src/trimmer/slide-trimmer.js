@@ -179,7 +179,7 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
 
   const fileLabel = document.createElement('label');
   fileLabel.className = 'upload-trigger';
-  const labelTextNode = document.createTextNode('ダンス動画を選ぶ（音声ビート自動解析）');
+  const labelTextNode = document.createTextNode('ダンス動画を選ぶ（主旋律・メロディ自動解析）');
   fileLabel.appendChild(labelTextNode);
 
   const fileInput = document.createElement('input');
@@ -208,9 +208,9 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
       return;
     }
 
-    statusBadge.textContent = 'ANALYZING BEATS...';
+    statusBadge.textContent = 'ANALYZING MELODY...';
     statusBadge.className = 'status-indicator is-loading';
-    feedbackBox.innerHTML = '<p class="notice notice-tip">動画と音声ビートをブラウザ内で解析しています...</p>';
+    feedbackBox.innerHTML = '<p class="notice notice-tip">動画と音声の主旋律（メロディ帯域）をブラウザ内で解析しています...</p>';
 
     try {
       const previousEntry = state.mediaByCutId[cut.id];
@@ -234,13 +234,13 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
       inspected.trimStartSec = 0;
       state.mediaByCutId[cut.id] = inspected;
 
-      statusBadge.textContent = beatAnalysis.hasAudio ? 'BEAT READY' : 'VIDEO READY';
+      statusBadge.textContent = beatAnalysis.hasAudio ? 'MELODY SYNCED' : 'VIDEO READY';
       statusBadge.className = 'status-indicator is-ready';
       labelTextNode.textContent = `動画を変更する（${inspected.fileName}）`;
-      beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${beatAnalysis.peakCount} BEATS DETECTED`;
+      beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${beatAnalysis.peakCount} MELODY PHRASES`;
 
       const beatNotice = beatAnalysis.hasAudio
-        ? `<p class="notice notice-ok">音声から ${beatAnalysis.peakCount} 箇所のビートを検出しました！拍に合わせて画面の縁がバックライトのように微かに光ります。</p>`
+        ? `<p class="notice notice-ok">音声の主旋律（メロディ帯域）を解析しました（${beatAnalysis.peakCount} フレーズ検出）！歌やメロディの抑揚に沿って画面の縁が滑らかに光ります。</p>`
         : '<p class="notice notice-tip">音声トラックが検出できなかったため、標準リズムで縁のバックライト発光を適用します。</p>';
 
       renderPrecheckMessages(feedbackBox, inspected.warnings);
@@ -333,7 +333,7 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
     const val = mediaEntry.glowIntensity ?? 0.6;
     const tag = val <= 0.4 ? '微か' : val >= 0.9 ? '明るめ' : '標準';
     intensityLabel.textContent = `バックライトの強さ：${tag}（${val.toFixed(1)}）`;
-    beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${mediaEntry.beatAnalysis?.peakCount || 0} BEATS DETECTED`;
+    beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${mediaEntry.beatAnalysis?.peakCount || 0} MELODY PHRASES`;
   }
 
   durationSlider.addEventListener('input', () => {
