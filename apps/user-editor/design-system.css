@@ -1,0 +1,97 @@
+:root {
+  /* === Surfaces (Obsidian Studio Matte) === */
+  --bg-canvas: #09090b;
+  --bg-elevated: #111114;
+  --bg-panel: #16161b;
+  --bg-panel-hover: #1d1d24;
+  --bg-glass: rgba(13, 13, 16, 0.8);
+
+  /* === Hairlines === */
+  --line-subtle: rgba(244, 241, 234, 0.09);
+  --line-strong: rgba(244, 241, 234, 0.22);
+  --line-accent: rgba(212, 175, 122, 0.42);
+
+  /* === Ink === */
+  --ink-primary: #f4f1ea;
+  --ink-secondary: #a19d95;
+  --ink-muted: #6e6a63;
+
+  /* === Signal Accents === */
+  --accent-signal: #ff4d1c;
+  --accent-signal-hover: #ff6438;
+  --accent-signal-soft: rgba(255, 77, 28, 0.14);
+  --accent-champagne: #d4af7a;
+  --accent-champagne-soft: rgba(212, 175, 122, 0.12);
+
+  /* === Semantic === */
+  --sem-ok: #34d399;
+  --sem-ok-soft: rgba(52, 211, 153, 0.12);
+  --sem-tip: #f59e0b;
+  --sem-tip-soft: rgba(245, 158, 11, 0.12);
+  --sem-err: #fb7185;
+  --sem-err-soft: rgba(251, 113, 133, 0.12);
+
+  /* === Typography === */
+  --font-display: "Cormorant Garamond", "Times New Roman", serif;
+  --font-sans: "Zen Kaku Gothic New", "Inter", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* === Radii (Sharp Editorial Hierarchy) === */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* === Motion === */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-med: 380ms;
+  --dur-slow: 640ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-canvas);
+  color: var(--ink-primary);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(1200px 600px at 82% -8%, rgba(212, 175, 122, 0.08), transparent 60%),
+    radial-gradient(900px 520px at 10% 15%, rgba(255, 77, 28, 0.06), transparent 55%),
+    var(--bg-canvas);
+  color: var(--ink-primary);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* 静止SVGノイズによる微細なフィルムグレイン質感（iOS Safariでも再描画負荷ゼロ） */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-champagne);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-signal);
+  color: #ffffff;
+}

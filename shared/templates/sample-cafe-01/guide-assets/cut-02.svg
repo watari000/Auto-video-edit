@@ -1,28 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット2：ドリンクやスイーツに寄るクローズアップ構図ガイド">
-  <defs>
-    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f7ebe1" />
-      <stop offset="100%" stop-color="#e5cfb8" />
-    </linearGradient>
-  </defs>
-  <rect width="180" height="320" rx="16" fill="url(#bg2)" />
-  <!-- Rule of thirds guides -->
-  <g stroke="#b89f87" stroke-width="0.8" stroke-dasharray="4 4" opacity="0.7">
-    <line x1="60" y1="12" x2="60" y2="308" />
-    <line x1="120" y1="12" x2="120" y2="308" />
-    <line x1="12" y1="106" x2="168" y2="106" />
-    <line x1="12" y1="214" x2="168" y2="214" />
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+
+  <!-- Corner viewfinder brackets -->
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" />
+    <path d="M152 16 H164 V28" />
+    <path d="M16 292 V304 H28" />
+    <path d="M152 304 H164 V292" />
   </g>
-  <!-- Safe text zone at top -->
-  <rect x="28" y="34" width="124" height="28" rx="8" fill="#1f2937" opacity="0.72" />
-  <text x="90" y="52" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#ffffff">テロップ表示位置</text>
-  <!-- Saucer and cup silhouette -->
-  <ellipse cx="90" cy="222" rx="56" ry="15" fill="#7c5b43" opacity="0.35" />
-  <path d="M48 144 H124 L116 212 C114 222 104 226 90 226 C76 226 66 222 64 212 Z" fill="#6f523b" opacity="0.82" />
-  <path d="M123 156 C140 156 142 186 120 192" fill="none" stroke="#6f523b" stroke-width="6" stroke-linecap="round" opacity="0.82" />
-  <ellipse cx="86" cy="144" rx="38" ry="10" fill="#d6b497" stroke="#6f523b" stroke-width="2" />
+
+  <!-- Rule of thirds grid -->
+  <g stroke="#f4f1ea" stroke-opacity="0.12" stroke-width="0.8" stroke-dasharray="3 4">
+    <line x1="60" y1="16" x2="60" y2="304" />
+    <line x1="120" y1="16" x2="120" y2="304" />
+    <line x1="16" y1="106" x2="164" y2="106" />
+    <line x1="16" y1="214" x2="164" y2="214" />
+  </g>
+
+  <!-- HUD top meta -->
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.7">SHOT 02 // 2.0S</text>
+
+  <!-- Top safe text zone -->
+  <rect x="26" y="40" width="128" height="26" rx="4" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="56" text-anchor="middle" font-size="9.5" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+
+  <!-- Center focus reticle -->
+  <circle cx="88" cy="180" r="56" fill="none" stroke="#ff4d1c" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="4 4" />
+
+  <!-- Cup & saucer linework -->
+  <ellipse cx="90" cy="224" rx="56" ry="13" fill="#f4f1ea" fill-opacity="0.04" stroke="#f4f1ea" stroke-opacity="0.4" stroke-width="1.2" />
+  <path d="M48 144 H124 L116 212 C114 221 104 226 90 226 C76 226 66 221 64 212 Z" fill="#f4f1ea" fill-opacity="0.08" stroke="#f4f1ea" stroke-opacity="0.85" stroke-width="1.5" />
+  <path d="M123 156 C141 156 142 186 120 192" fill="none" stroke="#f4f1ea" stroke-opacity="0.85" stroke-width="3" stroke-linecap="round" />
+  <ellipse cx="86" cy="144" rx="38" ry="10" fill="#d4af7a" fill-opacity="0.2" stroke="#d4af7a" stroke-width="1.3" />
+
   <!-- Steam lines -->
-  <g stroke="#9a7b62" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75">
+  <g stroke="#d4af7a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-opacity="0.8">
     <path d="M72 126 C66 114 78 106 72 94" />
     <path d="M90 122 C84 110 96 102 90 90" />
     <path d="M108 126 C102 114 114 106 108 94" />

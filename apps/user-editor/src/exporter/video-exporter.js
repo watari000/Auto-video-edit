@@ -7,30 +7,34 @@ import {
 } from '../../lib/video-engine.js';
 
 /**
- * STEP 5：ブラウザ内だけで無音動画を合成・書き出し、工程ごとの進捗を可視化する。
+ * STEP 04：マスタリング＆ローカル無音書き出しドック。工程ごとのテレメトリ進捗を表示する。
  */
 export function initExporterSection(container, template, state, resourcePool, beforeExportCallback) {
   container.innerHTML = `
-    <div class="export-panel">
-      <div class="export-options">
-        <label class="quality-select-label">
-          <span>書き出し画質（iPhoneで重い場合は軽量モード推奨）：</span>
-          <select id="export-scale-select">
-            <option value="0.6667" selected>軽量 720×1280（スマホ推奨）</option>
+    <div class="export-dock">
+      <div class="export-dock-grid">
+        <div>
+          <label for="export-scale-select" class="quality-label">RENDER RESOLUTION // iOS SAFARI SAFE</label>
+          <select id="export-scale-select" class="quality-select">
+            <option value="0.6667" selected>軽量 720×1280（スマホ推奨・高速）</option>
             <option value="1">標準 1080×1920（フルHD）</option>
           </select>
-        </label>
+        </div>
+        <div>
+          <button type="button" id="export-start-btn" class="btn btn-accent">無音動画を書き出す</button>
+        </div>
       </div>
-      <div class="export-actions">
-        <button type="button" id="export-start-btn" class="btn btn-accent">無音動画を書き出す</button>
-      </div>
-      <div id="export-progress-wrap" class="progress-wrap hidden">
+
+      <div id="export-progress-wrap" class="progress-telemetry hidden">
         <div class="progress-meta">
           <span id="export-step-label">準備中...</span>
           <span id="export-percent-label">0%</span>
         </div>
-        <progress id="export-progress-bar" max="100" value="0"></progress>
+        <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="export-progress-fill" class="progress-bar-fill"></div>
+        </div>
       </div>
+
       <div id="export-result-box" class="export-result hidden"></div>
     </div>
   `;
@@ -40,7 +44,8 @@ export function initExporterSection(container, template, state, resourcePool, be
   const progressWrap = container.querySelector('#export-progress-wrap');
   const stepLabel = container.querySelector('#export-step-label');
   const percentLabel = container.querySelector('#export-percent-label');
-  const progressBar = container.querySelector('#export-progress-bar');
+  const progressTrack = container.querySelector('.progress-bar-track');
+  const progressFill = container.querySelector('#export-progress-fill');
   const resultBox = container.querySelector('#export-result-box');
 
   let activeDownloadUrl = null;
@@ -50,7 +55,8 @@ export function initExporterSection(container, template, state, resourcePool, be
     progressWrap.classList.remove('hidden');
     stepLabel.textContent = stepText;
     percentLabel.textContent = `${safePercent}%`;
-    progressBar.value = safePercent;
+    progressFill.style.width = `${safePercent}%`;
+    progressTrack.setAttribute('aria-valuenow', String(safePercent));
   }
 
   startBtn.addEventListener('click', async () => {
@@ -132,7 +138,7 @@ export function initExporterSection(container, template, state, resourcePool, be
           無音動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒）の書き出しが完了しました。
           ${isMp4 ? '' : '（※このブラウザはMP4直接出力非対応のため WebM 形式で保存されました。Safari等ではMP4で保存されます）'}
         </p>
-        <a href="${activeDownloadUrl}" download="${fileName}" class="btn btn-primary download-link">
+        <a href="${activeDownloadUrl}" download="${fileName}" class="btn btn-primary download-cta">
           ${fileName} を端末に保存する
         </a>
         <p class="export-next-hint">保存後、Instagramのリール投稿画面でおすすめ音源をつけてアップしてください。</p>

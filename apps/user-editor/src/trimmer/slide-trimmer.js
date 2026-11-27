@@ -1,7 +1,7 @@
 import { inspectMediaFile } from '../precheck/media-precheck.js';
 
 /**
- * STEP 2〜3：カットごとの素材選択、プリチェック警告表示、長尺動画のスライド式トリミングUIを提供する。
+ * STEP 02：カットごとの素材選択、プリチェック案内、長尺動画のフィルムストリップ式スライドトリミングを提供する。
  */
 export function renderTrimmerSection(container, template, state, resourcePool, onStateChange) {
   container.innerHTML = '';
@@ -9,24 +9,28 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
   const list = document.createElement('div');
   list.className = 'cut-editor-list';
 
-  template.cuts.forEach((cut) => {
+  template.cuts.forEach((cut, index) => {
     const card = document.createElement('article');
-    card.className = 'cut-editor-card';
+    card.className = 'cut-row';
     card.dataset.cutId = cut.id;
 
     const header = document.createElement('div');
-    header.className = 'cut-editor-header';
+    header.className = 'cut-row-head';
     header.innerHTML = `
-      <div>
-        <h3>${escapeHtml(cut.label)}</h3>
-        <p class="cut-sub">使用時間：<strong>${cut.durationSec.toFixed(1)}秒</strong>（写真・動画どちらもOK）</p>
+      <div class="cut-row-title-wrap">
+        <span class="cut-index">${String(index + 1).padStart(2, '0')}</span>
+        <div>
+          <h3 class="cut-row-title">${escapeHtml(cut.label)}</h3>
+          <p class="cut-duration-meta">DURATION ${cut.durationSec.toFixed(1)}S // VIDEO OR PHOTO</p>
+        </div>
       </div>
-      <span class="status-pill" data-role="status-badge">未選択</span>
+      <span class="status-indicator" data-role="status-badge">WAITING</span>
     `;
 
     const fileLabel = document.createElement('label');
-    fileLabel.className = 'file-picker-btn';
-    fileLabel.textContent = 'カメラロールから素材を選ぶ';
+    fileLabel.className = 'upload-trigger';
+    const labelTextNode = document.createTextNode('カメラロールから素材を選ぶ');
+    fileLabel.appendChild(labelTextNode);
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -53,8 +57,8 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
       }
 
       const statusBadge = card.querySelector('[data-role="status-badge"]');
-      statusBadge.textContent = '確認中...';
-      statusBadge.className = 'status-pill is-loading';
+      statusBadge.textContent = 'ANALYZING...';
+      statusBadge.className = 'status-indicator is-loading';
       feedbackBox.innerHTML = '';
 
       try {
@@ -66,16 +70,16 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
         }
 
         state.mediaByCutId[cut.id] = inspected;
-        statusBadge.textContent = `${inspected.mediaType === 'video' ? '動画' : '写真'} OK`;
-        statusBadge.className = 'status-pill is-ready';
-        fileLabel.childNodes[0].textContent = `素材を変更する（${inspected.fileName}）`;
+        statusBadge.textContent = inspected.mediaType === 'video' ? 'VIDEO READY' : 'PHOTO READY';
+        statusBadge.className = 'status-indicator is-ready';
+        labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
 
         renderPrecheckMessages(feedbackBox, inspected.warnings);
         renderSlideTrimmer(trimBox, cut, inspected, onStateChange);
         onStateChange();
       } catch (error) {
-        statusBadge.textContent = '読み込みエラー';
-        statusBadge.className = 'status-pill is-error';
+        statusBadge.textContent = 'ERROR';
+        statusBadge.className = 'status-indicator is-error';
         feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
       }
     });
@@ -86,7 +90,7 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
 
 function renderPrecheckMessages(container, warnings) {
   if (!warnings || warnings.length === 0) {
-    container.innerHTML = '<p class="notice notice-ok">向き・明るさともに良好です！</p>';
+    container.innerHTML = '<p class="notice notice-ok">向き・明るさともに良好です。そのまま美しく仕上がります。</p>';
     return;
   }
 
@@ -113,17 +117,24 @@ function renderSlideTrimmer(trimBox, cut, mediaEntry, onStateChange) {
   trimBox.classList.remove('hidden');
   mediaEntry.trimStartSec = Math.min(mediaEntry.trimStartSec || 0, maxStart);
 
-  const infoRow = document.createElement('div');
-  infoRow.className = 'trim-info-row';
+  const trimHeader = document.createElement('div');
+  trimHeader.className = 'trim-header';
 
   const label = document.createElement('span');
   label.className = 'trim-label';
+  trimHeader.appendChild(label);
+
+  const miniRow = document.createElement('div');
+  miniRow.className = 'trim-mini-row';
 
   const previewMini = document.createElement('video');
   previewMini.className = 'trim-mini-video';
   previewMini.src = mediaEntry.objectUrl;
   previewMini.muted = true;
   previewMini.playsInline = true;
+
+  const trackWrap = document.createElement('div');
+  trackWrap.className = 'trim-track-wrap';
 
   const track = document.createElement('div');
   track.className = 'trim-track';
@@ -143,7 +154,7 @@ function renderSlideTrimmer(trimBox, cut, mediaEntry, onStateChange) {
 
   function updateTrimmerUi(startSec) {
     const endSec = Math.min(mediaEntry.durationSec, startSec + cut.durationSec);
-    label.textContent = `使用範囲：${startSec.toFixed(1)}秒 〜 ${endSec.toFixed(1)}秒（全${mediaEntry.durationSec.toFixed(1)}秒）`;
+    label.textContent = `IN ${startSec.toFixed(1)}s — OUT ${endSec.toFixed(1)}s (全 ${mediaEntry.durationSec.toFixed(1)}s)`;
     const leftPct = (startSec / mediaEntry.durationSec) * 100;
     const widthPct = Math.min(100 - leftPct, (cut.durationSec / mediaEntry.durationSec) * 100);
     activeWindow.style.left = `${leftPct}%`;
@@ -162,11 +173,14 @@ function renderSlideTrimmer(trimBox, cut, mediaEntry, onStateChange) {
     onStateChange();
   });
 
-  infoRow.appendChild(label);
-  trimBox.appendChild(infoRow);
-  trimBox.appendChild(previewMini);
-  trimBox.appendChild(track);
-  trimBox.appendChild(slider);
+  trackWrap.appendChild(track);
+  trackWrap.appendChild(slider);
+
+  miniRow.appendChild(previewMini);
+  miniRow.appendChild(trackWrap);
+
+  trimBox.appendChild(trimHeader);
+  trimBox.appendChild(miniRow);
 }
 
 function escapeHtml(text) {

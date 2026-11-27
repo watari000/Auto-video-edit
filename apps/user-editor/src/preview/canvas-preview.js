@@ -8,37 +8,55 @@ const PREVIEW_WIDTH = 360;
 const PREVIEW_HEIGHT = 640;
 
 /**
- * STEP 4：重いMP4書き出しの前にCanvas上でサッと動きとテロップを確認・微調整できる軽量プレビューを提供する。
+ * STEP 03〜モニター：9:16 シネマモニターでの軽量プレビューと、テロップ文言調整コンソールを提供する。
  */
-export function initPreviewSection(container, template, state) {
-  container.innerHTML = `
-    <div class="preview-layout">
-      <div class="preview-stage-wrap">
-        <canvas id="preview-canvas" width="${PREVIEW_WIDTH}" height="${PREVIEW_HEIGHT}" class="preview-canvas"></canvas>
-        <div class="preview-controls">
-          <button type="button" id="preview-play-btn" class="btn btn-primary">再生 / 一時停止</button>
-          <button type="button" id="preview-restart-btn" class="btn btn-secondary">最初から</button>
-        </div>
-        <div class="timeline-status">
-          <span id="preview-time-label">0.0s / 0.0s</span>
-          <input type="range" id="preview-scrub" min="0" max="5" step="0.05" value="0" aria-label="プレビュー再生位置" />
-        </div>
+export function initPreviewSection(previewContainer, template, state, captionsContainer) {
+  previewContainer.innerHTML = `
+    <div class="monitor-shell">
+      <div class="monitor-hud-top">
+        <span class="monitor-hud-rec"><span class="rec-dot" aria-hidden="true"></span>MONITOR 9:16</span>
+        <span id="preview-hud-time">00.0 / 00.0s</span>
       </div>
-      <div class="caption-editor-wrap">
-        <h3>テロップ文言の微調整</h3>
-        <p class="caption-hint">文字を変更するとプレビューへ即座に反映されます。</p>
-        <div id="caption-inputs" class="caption-inputs"></div>
+      <div class="monitor-bezel">
+        <canvas id="preview-canvas" width="${PREVIEW_WIDTH}" height="${PREVIEW_HEIGHT}" class="preview-canvas"></canvas>
+      </div>
+      <div class="monitor-controls">
+        <button type="button" id="preview-play-btn" class="btn btn-primary">再生する</button>
+        <button type="button" id="preview-restart-btn" class="btn btn-secondary">先頭へ</button>
+      </div>
+      <div class="timeline-scrub-row">
+        <input type="range" id="preview-scrub" class="scrub-range" min="0" max="5" step="0.05" value="0" aria-label="プレビュー再生位置" />
+        <div class="scrub-time">
+          <span>TIMELINE SCRUB</span>
+          <span id="preview-time-label">0.0s / 0.0s</span>
+        </div>
       </div>
     </div>
   `;
 
-  const canvas = container.querySelector('#preview-canvas');
+  const targetCaptionHost = captionsContainer || previewContainer;
+  const captionWrapper = document.createElement('div');
+  captionWrapper.className = 'caption-console';
+  captionWrapper.innerHTML = `
+    <p class="caption-hint">入力した文言は右側のシネマモニターへ即座に反映されます。</p>
+    <div id="caption-inputs" class="caption-inputs"></div>
+  `;
+
+  if (captionsContainer) {
+    captionsContainer.innerHTML = '';
+    captionsContainer.appendChild(captionWrapper);
+  } else {
+    previewContainer.appendChild(captionWrapper);
+  }
+
+  const canvas = previewContainer.querySelector('#preview-canvas');
   const ctx = canvas.getContext('2d');
-  const playBtn = container.querySelector('#preview-play-btn');
-  const restartBtn = container.querySelector('#preview-restart-btn');
-  const timeLabel = container.querySelector('#preview-time-label');
-  const scrub = container.querySelector('#preview-scrub');
-  const captionInputs = container.querySelector('#caption-inputs');
+  const playBtn = previewContainer.querySelector('#preview-play-btn');
+  const restartBtn = previewContainer.querySelector('#preview-restart-btn');
+  const hudTime = previewContainer.querySelector('#preview-hud-time');
+  const timeLabel = previewContainer.querySelector('#preview-time-label');
+  const scrub = previewContainer.querySelector('#preview-scrub');
+  const captionInputs = captionWrapper.querySelector('#caption-inputs');
 
   const { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
   scrub.max = String(totalDurationSec);
@@ -52,7 +70,10 @@ export function initPreviewSection(container, template, state) {
     const field = document.createElement('label');
     field.className = 'caption-field';
     field.innerHTML = `
-      <span>${escapeHtml(cut.label)}（最大${cut.textOverlay.maxLength}文字）</span>
+      <span class="caption-field-head">
+        <span>${escapeHtml(cut.label)}</span>
+        <span class="caption-pos-tag">POS: ${escapeHtml(cut.textOverlay.position.toUpperCase())} / MAX ${cut.textOverlay.maxLength}</span>
+      </span>
       <input
         type="text"
         maxlength="${cut.textOverlay.maxLength}"
@@ -136,7 +157,9 @@ export function initPreviewSection(container, template, state) {
       state.textByCutId[segment.cut.id]
     );
 
-    timeLabel.textContent = `${currentSec.toFixed(1)}s / ${totalDurationSec.toFixed(1)}s`;
+    const formatted = `${currentSec.toFixed(1)}s / ${totalDurationSec.toFixed(1)}s`;
+    timeLabel.textContent = formatted;
+    hudTime.textContent = `${currentSec.toFixed(1).padStart(4, '0')} / ${totalDurationSec.toFixed(1)}s`;
     scrub.value = currentSec.toFixed(2);
   }
 
