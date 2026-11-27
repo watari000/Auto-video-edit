@@ -1,0 +1,41 @@
+[
+  {
+    "id": "sample-cafe-01",
+    "title": "週末カフェ・ゆったり3カット",
+    "category": "CAFE / VLOG",
+    "summary": "お店の外観→ドリンク寄り→テーブル引きの王道3カット（5.0秒）で、ゆったりしたVlog風リールを作れます。",
+    "durationSec": 5.0,
+    "cutCount": 3,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 85–105",
+    "filterTag": "WARM",
+    "templatePath": "./sample-cafe-01/template.json",
+    "coverAsset": "./sample-cafe-01/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-city-walk-02",
+    "title": "街歩き・テンポ重視5カット",
+    "category": "CITY / TRAVEL",
+    "summary": "1秒台のテンポよい切り替えで街並み・足元・空・お気に入りスポットを繋ぐ、疾走感のある5カット（5.5秒）構成です。",
+    "durationSec": 5.5,
+    "cutCount": 5,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 110–128",
+    "filterTag": "COOL / VIVID",
+    "templatePath": "./sample-city-walk-02/template.json",
+    "coverAsset": "./sample-city-walk-02/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-product-reel-03",
+    "title": "お気に入りアイテム・質感4カット",
+    "category": "ITEM / MINIMAL",
+    "summary": "コスメやガジェット、購入品のディテールを落ち着いて見せる、余白を活かした4カット（6.5秒）テンプレートです。",
+    "durationSec": 6.5,
+    "cutCount": 4,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 90–108",
+    "filterTag": "VINTAGE",
+    "templatePath": "./sample-product-reel-03/template.json",
+    "coverAsset": "./sample-product-reel-03/guide-assets/cut-01.svg"
+  }
+]

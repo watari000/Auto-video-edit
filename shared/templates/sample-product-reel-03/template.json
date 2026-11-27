@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-product-reel-03",
+  "title": "お気に入りアイテム・質感4カット",
+  "description": "お気に入りの雑貨・コスメ・ガジェットなどの質感を、ヴィンテージ調の色味と落ち着いた余白で魅せる4カット（合計6.5秒）構成です。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "ミニマルピアノ・R&Bチル・上品なアコースティック",
+    "bpmRange": {
+      "min": 90,
+      "max": 108
+    },
+    "suggestedSearchKeywords": [
+      "minimal piano aesthetic",
+      "rnb chill instrumental",
+      "aesthetic unboxing"
+    ],
+    "note": "落ち着いたリズムの曲を選ぶと、アイテムの質感やテロップの余韻が引き立ちます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：全体シルエット",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.5,
+      "shootingGuide": {
+        "shotType": "センター配置（やや引き）",
+        "cameraMove": "ゆっくり寄る / 写真でもOK",
+        "tips": "テーブルや布の上にアイテムを1つだけ置き、余白をたっぷり取ると洗練された印象になります。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "fade",
+        "filter": "vintage"
+      },
+      "textOverlay": {
+        "defaultText": "Daily Essentials",
+        "placeholder": "例：Daily Essentials / アイテム名",
+        "maxLength": 24,
+        "position": "top",
+        "style": "clean"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：質感・ロゴ寄り",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.5,
+      "shootingGuide": {
+        "shotType": "マクロ / ディテール寄り",
+        "cameraMove": "右から左へ滑らかにスライド",
+        "tips": "窓からの自然光が斜めに当たる角度で撮ると、素材感やツヤが綺麗に写ります。",
+        "silhouetteAsset": "guide-assets/cut-02.svg"
+      },
+      "effect": {
+        "motion": "pan-left",
+        "transitionIn": "cut",
+        "filter": "vintage"
+      },
+      "textOverlay": {
+        "defaultText": "お気に入りの質感",
+        "placeholder": "例：お気に入りの質感 / 推しポイント",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "pill"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：手に持つ・使うシーン",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.5,
+      "shootingGuide": {
+        "shotType": "手元ミディアムショット",
+        "cameraMove": "手元の動きを固定で撮影",
+        "tips": "フタを開けたり手に取ったりする1動作を入れると、使っているイメージが伝わりやすくなります。",
+        "silhouetteAsset": "guide-assets/cut-03.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "fade",
+        "filter": "vintage"
+      },
+      "textOverlay": {
+        "defaultText": "毎日使いたくなる",
+        "placeholder": "例：毎日使いたくなる / 使用感メモ",
+        "maxLength": 24,
+        "position": "center",
+        "style": "shadow"
+      }
+    },
+    {
+      "id": "cut-4",
+      "order": 4,
+      "label": "カット4：フラットレイ俯瞰締め",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 2.0,
+      "shootingGuide": {
+        "shotType": "真上からのフラットレイ",
+        "cameraMove": "ゆっくり引いて全体を見せる",
+        "tips": "小物やノートと一緒に並べて真上から撮影すると、投稿の保存率が上がりやすい締めカットになります。",
+        "silhouetteAsset": "guide-assets/cut-04.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "fade",
+        "filter": "vintage"
+      },
+      "textOverlay": {
+        "defaultText": "保存してあとで見返す",
+        "placeholder": "例：保存してあとで見返す / ブランド名",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "pill"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:00:00+09:00",
+    "updatedAt": "2026-11-27T17:00:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Phase 1 多パターン検証用：アイテム紹介4カット"
+  }
+}

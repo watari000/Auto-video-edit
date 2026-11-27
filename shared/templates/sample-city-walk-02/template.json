@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-city-walk-02",
+  "title": "街歩き・テンポ重視5カット",
+  "description": "1秒前後のスピーディなカット切り替えで、街歩きや旅行の空気感を軽快にまとめる5カット（合計5.5秒）テンプレートです。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "シティポップ・アップテンポエレクトロ・軽快なビート",
+    "bpmRange": {
+      "min": 110,
+      "max": 128
+    },
+    "suggestedSearchKeywords": [
+      "upbeat travel vlog",
+      "city pop instrumental",
+      "indie pop beat"
+    ],
+    "note": "約1秒ごとにテンポよくカットが切り替わるため、ビートがはっきりしたアップテンポな音源と相性が抜群です。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：駅・街並みの導入",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.0,
+      "shootingGuide": {
+        "shotType": "ワイドショット（縦構図）",
+        "cameraMove": "左から右へ軽くパン / 歩き出し",
+        "tips": "建物や通りの奥行きが分かる構図にすると、1秒でも旅の始まりが伝わります。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "pan-right",
+        "transitionIn": "cut",
+        "filter": "cool"
+      },
+      "textOverlay": {
+        "defaultText": "TOKYO WALK",
+        "placeholder": "例：TOKYO WALK / 場所の名前",
+        "maxLength": 24,
+        "position": "top",
+        "style": "pill"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：足元・歩くリズム",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.0,
+      "shootingGuide": {
+        "shotType": "ローアングル（足元寄り）",
+        "cameraMove": "歩幅に合わせて前進",
+        "tips": "靴や影、路面の質感を画面下半分に入れて、リズムの変化を出します。",
+        "silhouetteAsset": "guide-assets/cut-02.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "cut",
+        "filter": "cool"
+      },
+      "textOverlay": {
+        "defaultText": "午後の散歩",
+        "placeholder": "例：午後の散歩 / 時間帯メモ",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "shadow"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：街角の風景（文字なし間合い）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.2,
+      "shootingGuide": {
+        "shotType": "ミディアム（街灯・木漏れ日・看板）",
+        "cameraMove": "右から左へゆっくり振る",
+        "tips": "あえてテロップを入れないカットを挟むことで、映像そのものに視線が集まります。",
+        "silhouetteAsset": "guide-assets/cut-03.svg"
+      },
+      "effect": {
+        "motion": "pan-left",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "",
+        "placeholder": "空欄のままでもOK（必要な場合のみ入力）",
+        "maxLength": 24,
+        "position": "center",
+        "style": "clean"
+      }
+    },
+    {
+      "id": "cut-4",
+      "order": 4,
+      "label": "カット4：見上げた空・建築",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.0,
+      "shootingGuide": {
+        "shotType": "ハイアングル見上げ",
+        "cameraMove": "固定またはゆっくり引く",
+        "tips": "建物のシルエットと空のグラデーションを対角線に入れるとスタイリッシュに見えます。",
+        "silhouetteAsset": "guide-assets/cut-04.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "fade",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "Golden Hour",
+        "placeholder": "例：Golden Hour / 天気や気分",
+        "maxLength": 24,
+        "position": "center",
+        "style": "clean"
+      }
+    },
+    {
+      "id": "cut-5",
+      "order": 5,
+      "label": "カット5：目的地の締め",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.3,
+      "shootingGuide": {
+        "shotType": "ミディアム（人物後ろ姿または景色）",
+        "cameraMove": "カメラ固定で余韻を残す",
+        "tips": "最後に少し長めの1.3秒を置いて、締めのメッセージを読みやすくします。",
+        "silhouetteAsset": "guide-assets/cut-05.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "fade",
+        "filter": "cool"
+      },
+      "textOverlay": {
+        "defaultText": "また来週",
+        "placeholder": "例：また来週 / まとめの一言",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "pill"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:00:00+09:00",
+    "updatedAt": "2026-11-27T17:00:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Phase 1 多パターン検証用：アップテンポ5カット"
+  }
+}

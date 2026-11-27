@@ -25,17 +25,20 @@
 
   <nav class="studio-nav" aria-label="スタジオナビゲーション">
     <div class="nav-inner">
-      <a href="#top" class="brand-mark">
+      <a href="#gallery" id="brand-home-link" class="brand-mark">
         <span class="rec-dot" aria-hidden="true"></span>
         <span class="brand-text">KINETIC ATELIER // AUTO-VIDEO-EDIT</span>
       </a>
-      <div class="nav-steps">
+      <div id="nav-steps" class="nav-steps hidden">
         <a href="#step-guide" class="nav-link"><span>01</span>構成ガイド</a>
         <a href="#step-media" class="nav-link"><span>02</span>素材＆トリミング</a>
         <a href="#step-preview" class="nav-link"><span>03</span>モニター確認</a>
         <a href="#step-export" class="nav-link"><span>04</span>書き出し</a>
       </div>
       <div class="nav-actions">
+        <button type="button" id="nav-gallery-btn" class="nav-pill-btn hidden">
+          テンプレート一覧
+        </button>
         <button
           type="button"
           id="theme-toggle-btn"
@@ -46,78 +49,107 @@
           <span class="theme-toggle-dot" aria-hidden="true"></span>
           <span id="theme-toggle-label">THEME: DARK</span>
         </button>
-        <div id="ready-counter" class="ready-counter">0 / 3 CUTS READY</div>
+        <div id="ready-counter" class="ready-counter hidden">0 / 3 CUTS READY</div>
       </div>
     </div>
   </nav>
 
   <div id="top" class="studio-shell">
-    <header class="hero-masthead">
-      <div>
-        <p class="hero-eyebrow">LOCAL REEL STUDIO // ZERO-UPLOAD PRIVACY</p>
-        <h1 class="hero-title">構図通りに撮って、<br /><em>そのまま</em>ブラウザで仕上げる。</h1>
-      </div>
-      <div class="hero-right">
-        <p class="hero-lead">
-          撮影の目安とおすすめ音源を確認し、カメラロールの写真・動画を選ぶだけ。すべての合成処理はお使いの端末内だけで完結します。
-        </p>
-        <div id="app-banner" class="app-banner">テンプレートを読み込んでいます...</div>
-      </div>
-    </header>
+    <!-- 画面1：テンプレートギャラリー（パターン選択） -->
+    <section id="view-gallery" class="view-panel">
+      <header class="hero-masthead">
+        <div>
+          <p class="hero-eyebrow">TEMPLATE CATALOG // PHASE 1 STUDIO</p>
+          <h1 class="hero-title">撮りたい雰囲気を<em>選ぶだけ</em>。<br />あとはブラウザで自動編集。</h1>
+        </div>
+        <div class="hero-right">
+          <p class="hero-lead">
+            カット数やテンポの異なるテンプレートから1つ選ぶと、撮影ガイドと自動編集ワークベンチが開きます。写真・動画は端末の外へ一切送信されません。
+          </p>
+          <div id="gallery-banner" class="app-banner is-info">公開テンプレート一覧を読み込んでいます...</div>
+        </div>
+      </header>
 
-    <main>
-      <section id="step-guide" class="section-block">
+      <div class="section-block">
         <div class="section-header">
-          <span class="section-num">01</span>
+          <span class="section-num">00</span>
           <div>
-            <p class="section-kicker">SHOT DIRECTION &amp; SOUND NOTES</p>
-            <h2 class="section-title">お手本構成とおすすめ音源の目安</h2>
+            <p class="section-kicker">SELECT TEMPLATE PATTERN</p>
+            <h2 class="section-title">テンプレートを選択（全3パターン）</h2>
           </div>
         </div>
-        <div id="guide-container"></div>
-      </section>
+        <div id="gallery-container"></div>
+      </div>
+    </section>
 
-      <div class="workbench-grid">
-        <div class="workbench-left">
-          <section id="step-media">
-            <div class="section-header">
-              <span class="section-num">02</span>
-              <div>
-                <p class="section-kicker">MEDIA INGEST &amp; FILMSTRIP TRIM</p>
-                <h2 class="section-title">素材を選んで使いたい秒数枠を合わせる</h2>
-              </div>
-            </div>
-            <div id="trimmer-container"></div>
-          </section>
-
-          <section id="step-captions">
-            <div class="section-header">
-              <span class="section-num">03</span>
-              <div>
-                <p class="section-kicker">TYPOGRAPHY CONSOLE</p>
-                <h2 class="section-title">テロップ文言を微調整する</h2>
-              </div>
-            </div>
-            <div id="captions-container"></div>
-          </section>
-        </div>
-
-        <aside id="step-preview" class="workbench-right" aria-label="9:16 プレビューモニター">
-          <div id="preview-container"></div>
-        </aside>
+    <!-- 画面2：選択したテンプレートの編集スタジオ -->
+    <div id="view-editor" class="view-panel hidden">
+      <div class="editor-subbar">
+        <button type="button" id="back-to-gallery-btn" class="btn btn-secondary">
+          ← テンプレート一覧へ戻る
+        </button>
+        <label class="quick-switcher">
+          <span>PATTERN SWITCH</span>
+          <select id="quick-template-select" aria-label="テンプレートを直接切り替え"></select>
+        </label>
       </div>
 
-      <section id="step-export" class="section-block">
-        <div class="section-header">
-          <span class="section-num">04</span>
-          <div>
-            <p class="section-kicker">MASTERING &amp; LOCAL RENDER</p>
-            <h2 class="section-title">無音動画を書き出してInstagramへ</h2>
+      <div id="app-banner" class="app-banner is-info">テンプレートを読み込んでいます...</div>
+
+      <main>
+        <section id="step-guide" class="section-block">
+          <div class="section-header">
+            <span class="section-num">01</span>
+            <div>
+              <p class="section-kicker">SHOT DIRECTION &amp; SOUND NOTES</p>
+              <h2 class="section-title">お手本構成とおすすめ音源の目安</h2>
+            </div>
           </div>
+          <div id="guide-container"></div>
+        </section>
+
+        <div class="workbench-grid">
+          <div class="workbench-left">
+            <section id="step-media">
+              <div class="section-header">
+                <span class="section-num">02</span>
+                <div>
+                  <p class="section-kicker">MEDIA INGEST &amp; FILMSTRIP TRIM</p>
+                  <h2 class="section-title">素材を選んで使いたい秒数枠を合わせる</h2>
+                </div>
+              </div>
+              <div id="trimmer-container"></div>
+            </section>
+
+            <section id="step-captions">
+              <div class="section-header">
+                <span class="section-num">03</span>
+                <div>
+                  <p class="section-kicker">TYPOGRAPHY CONSOLE</p>
+                  <h2 class="section-title">テロップ文言を微調整する</h2>
+                </div>
+              </div>
+              <div id="captions-container"></div>
+            </section>
+          </div>
+
+          <aside id="step-preview" class="workbench-right" aria-label="9:16 プレビューモニター">
+            <div id="preview-container"></div>
+          </aside>
         </div>
-        <div id="exporter-container"></div>
-      </section>
-    </main>
+
+        <section id="step-export" class="section-block">
+          <div class="section-header">
+            <span class="section-num">04</span>
+            <div>
+              <p class="section-kicker">MASTERING &amp; LOCAL RENDER</p>
+              <h2 class="section-title">無音動画を書き出してInstagramへ</h2>
+            </div>
+          </div>
+          <div id="exporter-container"></div>
+        </section>
+      </main>
+    </div>
 
     <footer class="studio-footer">
       <span>CLIENT-SIDE PROCESSING ONLY // NO SERVER UPLOAD</span>

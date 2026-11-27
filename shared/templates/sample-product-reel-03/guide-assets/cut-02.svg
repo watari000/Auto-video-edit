@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット2：アイテムの質感やロゴに寄ってスライドする構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.7">SHOT 02 // 1.5S</text>
+  <!-- Macro crop -->
+  <rect x="34" y="84" width="112" height="136" rx="10" fill="#f4f1ea" fill-opacity="0.06" stroke="#f4f1ea" stroke-width="1.5" />
+  <rect x="52" y="122" width="76" height="58" rx="4" fill="#d4af7a" fill-opacity="0.16" stroke="#d4af7a" stroke-width="1.2" />
+  <text x="90" y="155" text-anchor="middle" font-size="10" font-family="monospace" letter-spacing="1.5" fill="#f4f1ea">DETAIL</text>
+  <path d="M116 232 H64 M72 226 L64 232 L72 238" stroke="#ff4d1c" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="26" y="250" width="128" height="26" rx="13" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="266" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+</svg>

@@ -47,6 +47,41 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
+test('shared/templates/index.json lists >= 3 valid templates with existing assets and unique IDs', async () => {
+  const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
+  const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
+  const catalog = JSON.parse(catalogRaw);
+
+  assert.ok(Array.isArray(catalog) && catalog.length >= 3);
+  const seenIds = new Set();
+
+  for (const entry of catalog) {
+    assert.equal(seenIds.has(entry.id), false, `Duplicate template id: ${entry.id}`);
+    seenIds.add(entry.id);
+
+    const coverStat = await fs.stat(path.join(templatesRoot, entry.coverAsset));
+    assert.ok(coverStat.isFile(), `Missing coverAsset: ${entry.coverAsset}`);
+
+    const templatePath = path.join(templatesRoot, entry.templatePath);
+    const templateRaw = await fs.readFile(templatePath, 'utf8');
+    const template = JSON.parse(templateRaw);
+
+    const validation = validateTemplateData(template);
+    assert.equal(validation.valid, true, `${entry.id} errors: ${validation.errors.join(', ')}`);
+    assert.equal(template.id, entry.id);
+    assert.equal(template.cuts.length, entry.cutCount);
+
+    const totalSec = Number(template.cuts.reduce((sum, c) => sum + c.durationSec, 0).toFixed(1));
+    assert.equal(totalSec, entry.durationSec);
+
+    const templateDir = path.dirname(templatePath);
+    for (const cut of template.cuts) {
+      const svgStat = await fs.stat(path.join(templateDir, cut.shootingGuide.silhouetteAsset));
+      assert.ok(svgStat.isFile(), `Missing SVG for ${entry.id}/${cut.id}`);
+    }
+  }
+});
+
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
   const invalid = {
     schemaVersion: '1.0.0',

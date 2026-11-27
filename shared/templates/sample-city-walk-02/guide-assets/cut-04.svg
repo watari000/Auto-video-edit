@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット4：見上げた空と建築を対角線に収める構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.7">SHOT 04 // 1.0S</text>
+  <!-- Diagonal building & sun -->
+  <polygon points="18,302 18,120 120,302" fill="#f4f1ea" fill-opacity="0.08" stroke="#f4f1ea" stroke-width="1.4" />
+  <circle cx="122" cy="96" r="20" fill="#d4af7a" fill-opacity="0.22" stroke="#d4af7a" stroke-width="1.4" />
+  <rect x="26" y="146" width="128" height="26" rx="4" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="162" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+</svg>

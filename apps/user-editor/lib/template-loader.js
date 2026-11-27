@@ -210,3 +210,39 @@ export async function loadTemplate(templateUrl) {
     cuts: resolvedCuts,
   };
 }
+
+/**
+ * 公開済みテンプレートの一覧カタログ（shared/templates/index.json）を読み込み、パスを解決して返す。
+ */
+export async function loadTemplateCatalog(catalogUrl) {
+  let response;
+  try {
+    response = await fetch(catalogUrl, { cache: 'no-cache' });
+  } catch {
+    throw new Error(
+      'テンプレート一覧の読み込みに失敗しました。ローカルサーバー（http://localhost:4173）経由で開いているか確認してください。'
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(`テンプレート一覧を取得できませんでした（HTTP ${response.status}）。`);
+  }
+
+  let items;
+  try {
+    items = await response.json();
+  } catch {
+    throw new Error('テンプレート一覧のJSON形式が正しくありません。');
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('公開中のテンプレートがまだ登録されていません。');
+  }
+
+  const baseUrl = new URL(catalogUrl, window.location.href);
+  return items.map((item) => ({
+    ...item,
+    resolvedTemplateUrl: new URL(item.templatePath, baseUrl).href,
+    resolvedCoverUrl: new URL(item.coverAsset, baseUrl).href,
+  }));
+}

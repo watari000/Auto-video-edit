@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット1：余白を活かしてアイテムを中央に配置する構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.7">SHOT 01 // 1.5S</text>
+  <rect x="26" y="42" width="128" height="24" rx="4" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="57" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+  <!-- Minimal bottle / item silhouette -->
+  <rect x="74" y="106" width="32" height="22" rx="3" fill="#d4af7a" fill-opacity="0.22" stroke="#d4af7a" stroke-width="1.3" />
+  <rect x="58" y="128" width="64" height="114" rx="8" fill="#f4f1ea" fill-opacity="0.08" stroke="#f4f1ea" stroke-width="1.5" />
+  <rect x="68" y="156" width="44" height="48" rx="3" fill="none" stroke="#f4f1ea" stroke-opacity="0.45" stroke-width="1" />
+  <g stroke="#ff4d1c" stroke-width="1.6" fill="none" stroke-linecap="round">
+    <path d="M28 92 L42 106 M35 106 H42 V99" />
+    <path d="M152 92 L138 106 M145 106 H138 V99" />
+  </g>
+</svg>

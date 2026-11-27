@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット2：足元と歩くリズムをローアングルで撮る構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.7">SHOT 02 // 1.0S</text>
+  <!-- Pavement lines -->
+  <line x1="20" y1="218" x2="160" y2="218" stroke="#f4f1ea" stroke-opacity="0.25" stroke-width="1" />
+  <!-- Shoe silhouettes -->
+  <path d="M46 150 L58 150 L62 194 C78 196 84 202 84 208 H42 Z" fill="#f4f1ea" fill-opacity="0.1" stroke="#f4f1ea" stroke-width="1.4" />
+  <path d="M100 132 L112 132 L116 176 C132 178 138 184 138 190 H96 Z" fill="#d4af7a" fill-opacity="0.16" stroke="#d4af7a" stroke-width="1.4" />
+  <g stroke="#ff4d1c" stroke-width="1.6" fill="none" stroke-linecap="round">
+    <path d="M90 108 V76 M84 84 L90 76 L96 84" />
+  </g>
+  <rect x="26" y="248" width="128" height="26" rx="4" fill="#16161b" stroke="#d4af7a" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3" />
+  <text x="90" y="264" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#f4f1ea" fill-opacity="0.88">テロップ安全枠</text>
+</svg>
