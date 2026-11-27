@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://watari000.github.io/Auto-video-edit/shared/schemas/template.schema.json",
+  "title": "Reel Assist Template Schema",
+  "description": "製作者ツールと利用者向けWebエディタ（および将来のiOSアプリ）で共有するテンプレート定義スキーマ。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "description",
+    "status",
+    "aspectRatio",
+    "output",
+    "audioGuide",
+    "cuts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "テンプレートスキーマのバージョン"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 2,
+      "maxLength": 64,
+      "description": "テンプレート識別子（ディレクトリ名と一致させる）"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "利用者画面に表示するテンプレート名"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "テンプレートの雰囲気や仕上がりイメージの説明"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "review", "published"],
+      "description": "Human-in-the-Loop承認状態。公開は published のみ"
+    },
+    "aspectRatio": {
+      "type": "string",
+      "enum": ["9:16", "1:1", "4:5"],
+      "description": "出力動画のアスペクト比"
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "fps", "muted"],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 360,
+          "maximum": 1080,
+          "description": "出力横幅（iOS Safariメモリ対策のため最大1080）"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 360,
+          "maximum": 1920,
+          "description": "出力縦幅（iOS Safariメモリ対策のため最大1920）"
+        },
+        "fps": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 30,
+          "description": "出力フレームレート（最大30fps）"
+        },
+        "muted": {
+          "type": "boolean",
+          "const": true,
+          "description": "著作権配慮のため無音書き出しを強制"
+        }
+      }
+    },
+    "audioGuide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mood", "bpmRange", "suggestedSearchKeywords", "note"],
+      "properties": {
+        "mood": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "おすすめの曲調・雰囲気"
+        },
+        "bpmRange": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 220
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 220
+            }
+          }
+        },
+        "suggestedSearchKeywords": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "description": "Instagramアプリ内で音源を探す際の検索キーワード目安"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "description": "音付けタイミングや投稿時の補足"
+        }
+      }
+    },
+    "cuts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/cut"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approvedBy": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "sourceNotes": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "order",
+        "label",
+        "acceptedMedia",
+        "durationSec",
+        "shootingGuide",
+        "effect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "acceptedMedia": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["video", "image"]
+          }
+        },
+        "durationSec": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 15
+        },
+        "shootingGuide": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["shotType", "cameraMove", "tips", "silhouetteAsset"],
+          "properties": {
+            "shotType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "cameraMove": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "tips": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            },
+            "silhouetteAsset": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "テンプレートディレクトリからの相対SVGパス（著作権配慮のため図解を使用）"
+            }
+          }
+        },
+        "effect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["motion", "transitionIn", "filter"],
+          "properties": {
+            "motion": {
+              "type": "string",
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right"]
+            },
+            "transitionIn": {
+              "type": "string",
+              "enum": ["cut", "fade"]
+            },
+            "filter": {
+              "type": "string",
+              "enum": ["none", "warm", "cool", "vintage", "vivid"]
+            }
+          }
+        },
+        "textOverlay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["defaultText", "placeholder", "maxLength", "position", "style"],
+          "properties": {
+            "defaultText": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            },
+            "position": {
+              "type": "string",
+              "enum": ["top", "center", "bottom"]
+            },
+            "style": {
+              "type": "string",
+              "enum": ["clean", "pill", "shadow"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

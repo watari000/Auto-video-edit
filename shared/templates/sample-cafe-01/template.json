@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-cafe-01",
+  "title": "週末カフェ・ゆったり3カット",
+  "description": "お店の外観→ドリンク寄り→テーブル引きの王道3カット（合計5秒）で、誰でもおしゃれなVlog風リールを作れるテンプレートです。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "アコースティック・Lo-Fi・カフェ系チルビート",
+    "bpmRange": {
+      "min": 85,
+      "max": 105
+    },
+    "suggestedSearchKeywords": [
+      "lofi chill",
+      "cafe acoustic",
+      "weekend vlog"
+    ],
+    "note": "書き出した無音動画をInstagramのリール画面で読み込み、「音源」から上記キーワードの曲を合わせるとテンポよく仕上がります。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：外観・入り口",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.5,
+      "shootingGuide": {
+        "shotType": "ミディアムショット（縦構図）",
+        "cameraMove": "ゆっくり正面へ歩く / 固定",
+        "tips": "看板やドアを画面の中央〜やや上に収めると、下のテロップが見やすくなります。長めに3秒ほど撮っておくとベストな瞬間を選びやすいです。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "cut",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "Weekend Cafe",
+        "placeholder": "例：Weekend Cafe / お店の名前",
+        "maxLength": 24,
+        "position": "bottom",
+        "style": "pill"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：ドリンク・スイーツ寄り",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 2.0,
+      "shootingGuide": {
+        "shotType": "クローズアップ（斜め45度）",
+        "cameraMove": "手元を固定して湯気や動きを撮る",
+        "tips": "カップを真ん中に大きく写し、自然光が横から入るようにすると美味しそうに映ります。写真を選んでも自動で動きがつきます。",
+        "silhouetteAsset": "guide-assets/cut-02.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "fade",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "お気に入りの一杯",
+        "placeholder": "例：お気に入りの一杯 / メニュー名",
+        "maxLength": 24,
+        "position": "top",
+        "style": "shadow"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：テーブル全体の余韻",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.5,
+      "shootingGuide": {
+        "shotType": "ワイド・俯瞰気味",
+        "cameraMove": "ゆっくり引いて空間を見せる",
+        "tips": "カップ・お皿・雑貨を画面下2/3にバランスよく配置すると、締めのカットとして綺麗にまとまります。",
+        "silhouetteAsset": "guide-assets/cut-03.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "fade",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "また来たい場所",
+        "placeholder": "例：また来たい場所 / 一言メモ",
+        "maxLength": 24,
+        "position": "center",
+        "style": "clean"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T15:00:00+09:00",
+    "updatedAt": "2026-11-27T15:00:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Phase 1 MVP検証用の手動作成サンプルテンプレート"
+  }
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto-video-edit｜ブラウザ完結リール自動編集</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <p class="eyebrow">Auto-video-edit / Phase 1 MVP</p>
+      <h1>リール動画かんたん自動編集</h1>
+      <p class="header-sub">ガイドに沿って写真や動画を選ぶだけで、Instagram投稿用の無音動画を端末内で作成します。</p>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <div id="app-banner" class="app-banner">テンプレートを読み込んでいます...</div>
+
+    <section class="step-section">
+      <h2 class="step-heading"><span class="step-badge">STEP 1</span>お手本ガイド＆おすすめ音源を見る</h2>
+      <div id="guide-container"></div>
+    </section>
+
+    <section class="step-section">
+      <h2 class="step-heading"><span class="step-badge">STEP 2〜3</span>素材を選んで使いたい秒数枠を合わせる</h2>
+      <div id="trimmer-container"></div>
+    </section>
+
+    <section class="step-section">
+      <h2 class="step-heading"><span class="step-badge">STEP 4</span>文字確認＆軽量プレビュー</h2>
+      <div id="preview-container"></div>
+    </section>
+
+    <section class="step-section">
+      <h2 class="step-heading"><span class="step-badge">STEP 5</span>無音動画を保存してInstagramへ</h2>
+      <div id="exporter-container"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
