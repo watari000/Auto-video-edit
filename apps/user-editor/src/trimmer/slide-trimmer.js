@@ -223,9 +223,10 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
         resourcePool.revokeUrl(previousEntry.objectUrl);
       }
 
-      const maxVideoDur = Math.max(1.5, inspected.durationSec || 8);
-      const defaultDur = Number(Math.min(15.0, maxVideoDur).toFixed(1));
-      cut.durationSec = defaultDur;
+      const maxVideoDur = Math.max(0.5, inspected.durationSec || 8);
+      const maxAllowedDur = Math.floor(Math.min(300.0, maxVideoDur) * 10) / 10;
+      const defaultDur = Number(Math.min(60.0, maxAllowedDur).toFixed(1));
+      cut.durationSec = Math.max(0.5, defaultDur);
 
       inspected.beatAnalysis = beatAnalysis;
       inspected.glowIntensity = 0.6;
@@ -257,23 +258,32 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
 
 function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChange) {
   controlsBox.classList.remove('hidden');
-  const videoDur = Math.max(1.5, mediaEntry.durationSec || 8);
-  const minDur = Math.min(2.0, Number(videoDur.toFixed(1)));
-  const maxDur = Math.max(minDur, Number(Math.min(30.0, videoDur).toFixed(1)));
+  const videoDur = Math.max(0.5, mediaEntry.durationSec || 8);
+  const maxDur = Math.max(0.5, Math.floor(Math.min(300.0, videoDur) * 10) / 10);
+  const minDur = Math.min(2.0, maxDur);
+  const initialMaxStart = Math.max(0, Math.floor((videoDur - cut.durationSec) * 10) / 10);
 
   controlsBox.innerHTML = `
+    <div class="beat-control-row">
+      <div class="trim-track" aria-hidden="true">
+        <div class="trim-window" id="beat-trim-window"></div>
+      </div>
+    </div>
     <div class="beat-control-row">
       <div class="trim-header">
         <span class="trim-label" id="beat-duration-label">使う長さ：${cut.durationSec.toFixed(1)}秒（全 ${videoDur.toFixed(1)}秒）</span>
       </div>
-      <input type="range" id="beat-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.5" value="${cut.durationSec}" aria-label="動画の長さ調整" />
+      <input type="range" id="beat-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.1" value="${cut.durationSec}" aria-label="動画の長さ調整" />
     </div>
     <div class="beat-control-row">
       <div class="trim-header">
         <span class="trim-label" id="beat-start-label">開始位置：0.0秒 〜 ${cut.durationSec.toFixed(1)}秒</span>
       </div>
-      <input type="range" id="beat-start-slider" class="trim-slider" min="0" max="${Math.max(0, videoDur - cut.durationSec).toFixed(2)}" step="0.1" value="0" aria-label="切り出し開始位置" />
+      <input type="range" id="beat-start-slider" class="trim-slider" min="0" max="${initialMaxStart.toFixed(1)}" step="0.1" value="0" aria-label="切り出し開始位置" />
     </div>
+    <p id="beat-long-warning" class="notice notice-tip hidden">
+      長尺（60秒超）の書き出しは再生時間と同じ時間がかかります。スマホではメモリ不足になる場合があるため、720×1280軽量モードまたはPCブラウザでの書き出しをおすすめします。
+    </p>
     <div class="beat-control-row">
       <div class="trim-header">
         <span class="trim-label" id="beat-intensity-label">バックライトの強さ：標準（0.6）</span>
@@ -291,10 +301,12 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
     </div>
   `;
 
+  const trimWindow = controlsBox.querySelector('#beat-trim-window');
   const durationSlider = controlsBox.querySelector('#beat-duration-slider');
   const durationLabel = controlsBox.querySelector('#beat-duration-label');
   const startSlider = controlsBox.querySelector('#beat-start-slider');
   const startLabel = controlsBox.querySelector('#beat-start-label');
+  const longWarning = controlsBox.querySelector('#beat-long-warning');
   const intensitySlider = controlsBox.querySelector('#beat-intensity-slider');
   const intensityLabel = controlsBox.querySelector('#beat-intensity-label');
   const colorSelect = controlsBox.querySelector('#beat-color-select');
@@ -302,8 +314,22 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
   function syncLabels() {
     const start = mediaEntry.trimStartSec || 0;
     const end = Math.min(videoDur, start + cut.durationSec);
-    durationLabel.textContent = `使う長さ：${cut.durationSec.toFixed(1)}秒（全 ${videoDur.toFixed(1)}秒）`;
-    startLabel.textContent = `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+    const maxStart = Math.max(0, Math.floor((videoDur - cut.durationSec) * 10) / 10);
+
+    startSlider.disabled = maxStart <= 0.05;
+    durationLabel.textContent = `使う長さ：${cut.durationSec.toFixed(1)}秒（最大 ${maxDur.toFixed(1)}秒 / 元動画 ${videoDur.toFixed(1)}秒）`;
+    startLabel.textContent =
+      maxStart <= 0.05
+        ? `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒（動画全体を使用中・長さを短くすると開始位置を動かせます）`
+        : `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+
+    const leftPct = Math.min(100, (start / videoDur) * 100);
+    const widthPct = Math.min(100 - leftPct, (cut.durationSec / videoDur) * 100);
+    trimWindow.style.left = `${leftPct}%`;
+    trimWindow.style.width = `${widthPct}%`;
+
+    longWarning.classList.toggle('hidden', cut.durationSec <= 60);
+
     const val = mediaEntry.glowIntensity ?? 0.6;
     const tag = val <= 0.4 ? '微か' : val >= 0.9 ? '明るめ' : '標準';
     intensityLabel.textContent = `バックライトの強さ：${tag}（${val.toFixed(1)}）`;
@@ -312,11 +338,11 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
 
   durationSlider.addEventListener('input', () => {
     cut.durationSec = Number(durationSlider.value);
-    const maxStart = Math.max(0, videoDur - cut.durationSec);
-    startSlider.max = maxStart.toFixed(2);
+    const maxStart = Math.max(0, Math.floor((videoDur - cut.durationSec) * 10) / 10);
+    startSlider.max = maxStart.toFixed(1);
     if ((mediaEntry.trimStartSec || 0) > maxStart) {
       mediaEntry.trimStartSec = maxStart;
-      startSlider.value = maxStart.toFixed(2);
+      startSlider.value = maxStart.toFixed(1);
     }
     syncLabels();
     onStateChange();

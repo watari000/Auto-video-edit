@@ -126,17 +126,9 @@ export async function analyzeVideoFileBeats(file) {
     audioCtx = new AudioCtx();
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
+    // 最大5分の動画でもiOS Safariのメモリ消費を抑えるため、ステレオ時も複製配列を作らずLchを直接解析する
     const channel0 = audioBuffer.getChannelData(0);
-    let mono = channel0;
-    if (audioBuffer.numberOfChannels > 1) {
-      const channel1 = audioBuffer.getChannelData(1);
-      mono = new Float32Array(channel0.length);
-      for (let i = 0; i < channel0.length; i++) {
-        mono[i] = (channel0[i] + channel1[i]) * 0.5;
-      }
-    }
-
-    const result = computeBeatEnvelopeFromPcm(mono, audioBuffer.sampleRate, BEAT_ENVELOPE_HZ);
+    const result = computeBeatEnvelopeFromPcm(channel0, audioBuffer.sampleRate, BEAT_ENVELOPE_HZ);
     return {
       ...result,
       hasAudio: result.peakCount > 0 || result.envelope.some((v) => v > 0.05),

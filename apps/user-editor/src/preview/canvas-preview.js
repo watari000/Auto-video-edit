@@ -113,6 +113,33 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
   let lastTimestamp = 0;
   let activeVideoId = null;
 
+  function seekPreviewVideo(video, targetTime) {
+    if (video._pendingSeekHandler) {
+      video.removeEventListener('seeked', video._pendingSeekHandler);
+      video._pendingSeekHandler = null;
+    }
+    const onSeeked = () => {
+      video._pendingSeekHandler = null;
+      const resolved = resolveCutAtTime(segments, currentSec);
+      if (!resolved) {
+        return;
+      }
+      const { segment, localSec } = resolved;
+      drawCutFrame(
+        ctx,
+        segment.cut,
+        state.mediaByCutId[segment.cut.id],
+        localSec,
+        PREVIEW_WIDTH,
+        PREVIEW_HEIGHT,
+        state.textByCutId[segment.cut.id]
+      );
+    };
+    video._pendingSeekHandler = onSeeked;
+    video.addEventListener('seeked', onSeeked, { once: true });
+    video.currentTime = targetTime;
+  }
+
   function syncVideoForPreview(cut, mediaEntry, localSec) {
     if (!mediaEntry || mediaEntry.mediaType !== 'video') {
       pauseAllVideos();
@@ -129,8 +156,8 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
     if (activeVideoId !== cut.id) {
       pauseAllVideos(cut.id);
       activeVideoId = cut.id;
-      if (Math.abs(video.currentTime - targetTime) > 0.12) {
-        video.currentTime = targetTime;
+      if (Math.abs(video.currentTime - targetTime) > 0.08) {
+        seekPreviewVideo(video, targetTime);
       }
       video.muted = !(isPlaying && previewAudioEnabled);
       if (isPlaying && video.paused) {
@@ -141,8 +168,8 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
       if (!video.paused) {
         video.pause();
       }
-      if (Math.abs(video.currentTime - targetTime) > 0.08) {
-        video.currentTime = targetTime;
+      if (Math.abs(video.currentTime - targetTime) > 0.05) {
+        seekPreviewVideo(video, targetTime);
       }
     } else {
       video.muted = !previewAudioEnabled;
