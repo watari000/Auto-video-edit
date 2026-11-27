@@ -478,7 +478,7 @@ function renderBizarreShiftTrimmer(container, template, state, resourcePool, onS
         cut.durationSec = 6.0;
       }
 
-      inspected.bizarrePalette = 'purple-lime';
+      inspected.bizarrePalette = 'golden-bizarre';
       inspected.bizarreTouch = 'color-only';
       inspected.bizarreTriggerSec = Math.min(2.0, Math.max(0.5, cut.durationSec - 0.5));
       inspected.trimStartSec = 0;

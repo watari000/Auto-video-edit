@@ -924,7 +924,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
       );
       drawBizarreShiftComposite(ctx, element, crop, width, height, localSec, {
         triggerSec: mediaEntry?.bizarreTriggerSec ?? 2.0,
-        palette: mediaEntry?.bizarrePalette || 'purple-lime',
+        palette: mediaEntry?.bizarrePalette || 'golden-bizarre',
         touchStyle: mediaEntry?.bizarreTouch || 'color-only',
         subjectMask: mediaEntry?.subjectMask || null,
       });

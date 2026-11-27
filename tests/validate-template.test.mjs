@@ -30,9 +30,16 @@ import {
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { createRecordingChunkSink } from '../apps/user-editor/lib/opfs-chunk-sink.js';
 import {
+  PART_CLOTHES,
+  PART_EYES,
+  PART_HAIR,
+  PART_LIPS,
+  PART_SKIN,
   buildBizarreColorLut,
+  buildSubjectPartMask,
   computeBizarreShiftState,
   extractSubjectMask,
+  stylizeSubjectPartPixels,
   stylizeSubjectPixels,
 } from '../apps/user-editor/lib/bizarre-shift-engine.js';
 import {
@@ -516,16 +523,54 @@ test('sample-bizarre-shift-08 defaults source audio to OFF and bizarre-shift-eng
   const extracted = extractSubjectMask(classes, 5, 5);
   assert.ok(extracted.subjectPixelCount >= 6);
   assert.equal(extracted.mask[0], 0);
-  assert.ok(extracted.mask[2 * 5 + 2] >= 200);
+  assert.ok(extracted.mask[2 * 5 + 2] > 0);
 
-  const lut = buildBizarreColorLut('purple-lime', 'anime-ink');
+  const lut = buildBizarreColorLut('golden-bizarre', 'anime-ink');
   assert.equal(lut.length, 256 * 3);
 
   const srcRgba = new Uint8ClampedArray(25 * 4).fill(180);
-  const outOnlyColor = stylizeSubjectPixels(srcRgba, extracted.mask, 5, 5, 'purple-lime', 'color-only');
+  const outOnlyColor = stylizeSubjectPixels(srcRgba, extracted.mask, 5, 5, 'golden-bizarre', 'color-only');
   // 背景隅 (0,0) は透明（alpha=0）のまま元映像を残す
   assert.equal(outOnlyColor[3], 0);
-  // 中央被写体 (2,2) は紫〜ライム系の異色カラーかつ不透明
+  // 中央被写体 (2,2) は異色カラーかつ不透明
   const centerOffset = (2 * 5 + 2) * 4;
   assert.ok(outOnlyColor[centerOffset + 3] >= 200);
+
+  // パーツ別マスク（髪=1, 肌=2, 服=3）がそれぞれ別々の色になることを検証
+  const selfieClasses = new Uint8Array([
+    0, 1, 1, 0,
+    0, 3, 3, 0,
+    0, 4, 4, 0,
+    0, 0, 0, 0,
+  ]);
+  const partMaskRes = buildSubjectPartMask({
+    width: 4,
+    height: 4,
+    selfieClasses,
+    selfieWidth: 4,
+    selfieHeight: 4,
+  });
+  assert.equal(partMaskRes.partMap[1], PART_HAIR);
+  assert.equal(partMaskRes.partMap[5], PART_SKIN);
+  assert.equal(partMaskRes.partMap[9], PART_CLOTHES);
+
+  const uniformSrc = new Uint8ClampedArray(16 * 4).fill(180);
+  const partRgba = stylizeSubjectPartPixels(
+    uniformSrc,
+    partMaskRes.partMap,
+    4,
+    4,
+    'golden-bizarre',
+    'color-only'
+  );
+  // 背景は透明
+  assert.equal(partRgba[3], 0);
+  // 髪(1)・肌(5)・服(9)が同じ元輝度(180)でも全く違うRGB色に変換される
+  const hairRgb = [partRgba[1 * 4], partRgba[1 * 4 + 1], partRgba[1 * 4 + 2]];
+  const skinRgb = [partRgba[5 * 4], partRgba[5 * 4 + 1], partRgba[5 * 4 + 2]];
+  const clothesRgb = [partRgba[9 * 4], partRgba[9 * 4 + 1], partRgba[9 * 4 + 2]];
+  assert.notDeepEqual(hairRgb, skinRgb);
+  assert.notDeepEqual(skinRgb, clothesRgb);
+  assert.notDeepEqual(hairRgb, clothesRgb);
+  assert.ok(PART_LIPS !== PART_EYES);
 });

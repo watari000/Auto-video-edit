@@ -203,7 +203,7 @@ export function renderGalleryView(container, catalogItems, activeTemplateId, onS
           });
           if (cut.effect?.motion === 'bizarre-shift') {
             sampleEntry.subjectMask = createSyntheticSubjectMask(SAMPLE_WIDTH, SAMPLE_HEIGHT);
-            sampleEntry.bizarrePalette = 'purple-lime';
+            sampleEntry.bizarrePalette = 'golden-bizarre';
             sampleEntry.bizarreTouch = 'anime-ink';
             sampleEntry.bizarreTriggerSec = 2.0;
           }
