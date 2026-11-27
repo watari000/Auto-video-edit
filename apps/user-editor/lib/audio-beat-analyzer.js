@@ -1,4 +1,6 @@
 export const BEAT_ENVELOPE_HZ = 30;
+export const EQ_BAND_COUNT = 8;
+export const EQ_CENTER_FREQS = [85, 170, 340, 650, 1150, 2000, 3400, 5600];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -9,7 +11,14 @@ function clamp(value, min, max) {
  */
 export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz = BEAT_ENVELOPE_HZ) {
   if (!channelData || !channelData.length || !sampleRate || sampleRate <= 0) {
-    return { envelope: new Float32Array(0), envelopeHz, peakCount: 0, durationSec: 0 };
+    return {
+      envelope: new Float32Array(0),
+      bands: new Uint8Array(0),
+      bandCount: EQ_BAND_COUNT,
+      envelopeHz,
+      peakCount: 0,
+      durationSec: 0,
+    };
   }
 
   const windowSize = Math.max(1, Math.floor(sampleRate / envelopeHz));
@@ -17,7 +26,14 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
   const durationSec = channelData.length / sampleRate;
 
   if (frameCount === 0) {
-    return { envelope: new Float32Array(0), envelopeHz, peakCount: 0, durationSec };
+    return {
+      envelope: new Float32Array(0),
+      bands: new Uint8Array(0),
+      bandCount: EQ_BAND_COUNT,
+      envelopeHz,
+      peakCount: 0,
+      durationSec,
+    };
   }
 
   // 主旋律（ボーカル・リード楽器）が集中する260Hz〜2,600Hz付近を残し、キック低音や高域ノイズを抑える
@@ -29,16 +45,29 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
   const alphaHp = rcHp / (rcHp + dt);
   const alphaLp = dt / (rcLp + dt);
 
+  const bandCoeffs = new Float64Array(EQ_BAND_COUNT);
+  for (let b = 0; b < EQ_BAND_COUNT; b++) {
+    const freq = Math.min(EQ_CENTER_FREQS[b], sampleRate * 0.44);
+    bandCoeffs[b] = 2 * Math.cos((2 * Math.PI * freq) / sampleRate);
+  }
+
   let hpPrevIn = 0;
   let hpPrevOut = 0;
   let lpPrevOut = 0;
 
   const rms = new Float32Array(frameCount);
+  const rawBands = new Float32Array(frameCount * EQ_BAND_COUNT);
+  const eqSamples = Math.min(windowSize, 320);
+
   for (let i = 0; i < frameCount; i++) {
     const start = i * windowSize;
     let sumSq = 0;
+    let eqMean = 0;
     for (let j = 0; j < windowSize; j++) {
       const sample = channelData[start + j];
+      if (j < eqSamples) {
+        eqMean += sample;
+      }
       const hpOut = alphaHp * (hpPrevOut + sample - hpPrevIn);
       hpPrevIn = sample;
       hpPrevOut = hpOut;
@@ -48,6 +77,21 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
       sumSq += lpOut * lpOut;
     }
     rms[i] = Math.sqrt(sumSq / windowSize);
+
+    // Goertzel法で8帯域のエネルギーを軽量に抽出する（長尺でも高速＆省メモリ）
+    eqMean /= eqSamples;
+    for (let b = 0; b < EQ_BAND_COUNT; b++) {
+      let s1 = 0;
+      let s2 = 0;
+      const c = bandCoeffs[b];
+      for (let j = 0; j < eqSamples; j++) {
+        const s0 = channelData[start + j] - eqMean + c * s1 - s2;
+        s2 = s1;
+        s1 = s0;
+      }
+      const power = Math.max(0, s1 * s1 + s2 * s2 - c * s1 * s2);
+      rawBands[i * EQ_BAND_COUNT + b] = Math.sqrt(power) / eqSamples;
+    }
   }
 
   const sorted = Float32Array.from(rms).sort();
@@ -55,8 +99,9 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
   const p95 = sorted[Math.floor((frameCount - 1) * 0.95)];
 
   const envelope = new Float32Array(frameCount);
+  const bands = new Uint8Array(frameCount * EQ_BAND_COUNT);
   if (p95 <= 1e-6) {
-    return { envelope, envelopeHz, peakCount: 0, durationSec };
+    return { envelope, bands, bandCount: EQ_BAND_COUNT, envelopeHz, peakCount: 0, durationSec };
   }
 
   const span = Math.max(p95 - p15, p95 * 0.35, 1e-6);
@@ -68,6 +113,26 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
     const coeff = normalized > smoothed ? 0.48 : 0.18;
     smoothed += coeff * (normalized - smoothed);
     envelope[i] = clamp(smoothed, 0, 1);
+  }
+
+  // 8帯域ごとに95パーセンタイルで正規化し、滑らかな攻撃・減衰を付けてUint8Arrayへ量子化する
+  const bandScratch = new Float32Array(frameCount);
+  for (let b = 0; b < EQ_BAND_COUNT; b++) {
+    for (let i = 0; i < frameCount; i++) {
+      bandScratch[i] = rawBands[i * EQ_BAND_COUNT + b];
+    }
+    const bandSorted = Float32Array.from(bandScratch).sort();
+    const b95 = bandSorted[Math.floor((frameCount - 1) * 0.95)];
+    if (b95 <= 1e-7) {
+      continue;
+    }
+    let bSmoothed = 0;
+    for (let i = 0; i < frameCount; i++) {
+      const norm = clamp(bandScratch[i] / b95, 0, 1);
+      const coeff = norm > bSmoothed ? 0.55 : 0.22;
+      bSmoothed += coeff * (norm - bSmoothed);
+      bands[i * EQ_BAND_COUNT + b] = Math.round(clamp(bSmoothed, 0, 1) * 255);
+    }
   }
 
   const minPeakGapFrames = Math.max(1, Math.round(envelopeHz * 0.35));
@@ -87,7 +152,43 @@ export function computeBeatEnvelopeFromPcm(channelData, sampleRate, envelopeHz =
     }
   }
 
-  return { envelope, envelopeHz, peakCount, durationSec };
+  return { envelope, bands, bandCount: EQ_BAND_COUNT, envelopeHz, peakCount, durationSec };
+}
+
+/**
+ * 解析済み8帯域データから指定時刻（秒）の左右対称イコライザーバー（0..1配列）を返す（純粋関数）。
+ */
+export function sampleEqualizerBarsAt(beatAnalysis, timeSec, barCount = 24) {
+  const bands = beatAnalysis?.bands;
+  const bandCount = beatAnalysis?.bandCount || EQ_BAND_COUNT;
+  const hz = beatAnalysis?.envelopeHz || BEAT_ENVELOPE_HZ;
+  const bars = new Array(barCount).fill(0);
+
+  if (!bands || bands.length === 0) {
+    return bars;
+  }
+
+  const frameCount = Math.floor(bands.length / bandCount);
+  if (frameCount <= 0) {
+    return bars;
+  }
+
+  const frameIdx = clamp(Math.round((Number(timeSec) || 0) * hz), 0, frameCount - 1);
+  const baseOffset = frameIdx * bandCount;
+  const center = (barCount - 1) / 2;
+
+  for (let i = 0; i < barCount; i++) {
+    const distRatio = center > 0 ? Math.abs(i - center) / center : 0;
+    const bandPos = distRatio * (bandCount - 1);
+    const b0 = Math.floor(bandPos);
+    const b1 = Math.min(bandCount - 1, b0 + 1);
+    const frac = bandPos - b0;
+    const v0 = bands[baseOffset + b0] / 255;
+    const v1 = bands[baseOffset + b1] / 255;
+    bars[i] = Number(clamp(v0 + (v1 - v0) * frac, 0, 1).toFixed(4));
+  }
+
+  return bars;
 }
 
 /**

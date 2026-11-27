@@ -79,9 +79,9 @@
   },
   {
     "id": "sample-dance-beat-07",
-    "title": "Dance Melody Glow・主旋律バックライト演出",
+    "title": "Dance Melody Glow・光＆イコライザー演出",
     "category": "DANCE / MELODY SYNC",
-    "summary": "ダンス動画の主旋律（メロディ帯域）をブラウザで自動解析し、歌やメロディの抑揚に沿って縁がバックライトのように滑らかに光ります。",
+    "summary": "ダンス動画の音声をブラウザで解析し、「縁バックライト」や「下部イコライザー」で音楽に連動させます。尺調整・音あり保存対応。",
     "durationSec": 8.0,
     "cutCount": 1,
     "aspectRatio": "9:16",

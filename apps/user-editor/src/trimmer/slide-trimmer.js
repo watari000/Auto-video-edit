@@ -229,6 +229,7 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
       cut.durationSec = Math.max(0.5, defaultDur);
 
       inspected.beatAnalysis = beatAnalysis;
+      inspected.visualStyle = 'backlight';
       inspected.glowIntensity = 0.6;
       inspected.glowColor = 'warm-gold';
       inspected.trimStartSec = 0;
@@ -285,13 +286,21 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
       長尺（60秒超）の書き出しは再生時間と同じ時間がかかります。スマホではメモリ不足になる場合があるため、720×1280軽量モードまたはPCブラウザでの書き出しをおすすめします。
     </p>
     <div class="beat-control-row">
-      <div class="trim-header">
-        <span class="trim-label" id="beat-intensity-label">バックライトの強さ：標準（0.6）</span>
-      </div>
-      <input type="range" id="beat-intensity-slider" class="trim-slider" min="0.2" max="1.2" step="0.1" value="0.6" aria-label="バックライト発光の強さ" />
+      <label class="trim-label" for="beat-style-select">演出パターン</label>
+      <select id="beat-style-select" class="quality-select">
+        <option value="backlight" selected>縁バックライト（主旋律）</option>
+        <option value="bottom-eq">下部イコライザー（音楽連動）</option>
+        <option value="both">縁バックライト ＋ 下部イコライザー</option>
+      </select>
     </div>
     <div class="beat-control-row">
-      <label class="trim-label" for="beat-color-select">バックライトの色</label>
+      <div class="trim-header">
+        <span class="trim-label" id="beat-intensity-label">演出の強さ：標準（0.6）</span>
+      </div>
+      <input type="range" id="beat-intensity-slider" class="trim-slider" min="0.2" max="1.2" step="0.1" value="0.6" aria-label="演出の強さ" />
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="beat-color-select">演出の色</label>
       <select id="beat-color-select" class="quality-select">
         <option value="warm-gold" selected>シャンパン暖色（おすすめ）</option>
         <option value="vermilion">バーミリオン（情熱レッド）</option>
@@ -307,6 +316,7 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
   const startSlider = controlsBox.querySelector('#beat-start-slider');
   const startLabel = controlsBox.querySelector('#beat-start-label');
   const longWarning = controlsBox.querySelector('#beat-long-warning');
+  const styleSelect = controlsBox.querySelector('#beat-style-select');
   const intensitySlider = controlsBox.querySelector('#beat-intensity-slider');
   const intensityLabel = controlsBox.querySelector('#beat-intensity-label');
   const colorSelect = controlsBox.querySelector('#beat-color-select');
@@ -332,7 +342,7 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
 
     const val = mediaEntry.glowIntensity ?? 0.6;
     const tag = val <= 0.4 ? '微か' : val >= 0.9 ? '明るめ' : '標準';
-    intensityLabel.textContent = `バックライトの強さ：${tag}（${val.toFixed(1)}）`;
+    intensityLabel.textContent = `演出の強さ：${tag}（${val.toFixed(1)}）`;
     beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${mediaEntry.beatAnalysis?.peakCount || 0} MELODY PHRASES`;
   }
 
@@ -351,6 +361,11 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
   startSlider.addEventListener('input', () => {
     mediaEntry.trimStartSec = Number(startSlider.value);
     syncLabels();
+    onStateChange();
+  });
+
+  styleSelect.addEventListener('change', () => {
+    mediaEntry.visualStyle = styleSelect.value;
     onStateChange();
   });
 

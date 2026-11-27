@@ -1,6 +1,7 @@
 import {
   computeBeatBacklightState,
   sampleBeatStrengthAt,
+  sampleEqualizerBarsAt,
 } from './audio-beat-analyzer.js';
 
 const BACKLIGHT_COLOR_MAP = {
@@ -714,6 +715,50 @@ function drawBeatBacklightOverlay(ctx, width, height, backlightState, colorKey =
   ctx.restore();
 }
 
+function drawBottomEqualizerOverlay(ctx, width, height, bars, intensity = 0.6, colorKey = 'warm-gold') {
+  if (!bars || bars.length === 0) {
+    return;
+  }
+
+  const [r, g, b] = BACKLIGHT_COLOR_MAP[colorKey] || BACKLIGHT_COLOR_MAP['warm-gold'];
+  const safeIntensity = clamp(Number(intensity) || 0.6, 0.2, 1.4);
+  const barCount = bars.length;
+  const areaWidth = width * 0.78;
+  const startX = (width - areaWidth) / 2;
+  const baseY = height * 0.91;
+  const maxBarH = height * (0.045 + 0.055 * safeIntensity);
+  const minBarH = Math.max(3, Math.round(height * 0.0045));
+  const stepX = areaWidth / barCount;
+  const barW = Math.max(2, stepX * 0.56);
+
+  ctx.save();
+
+  // 明るい背景動画でもバーが埋もれないよう下端にうっすら暗めのグラデーションを敷く
+  const scrimTop = baseY - maxBarH - height * 0.05;
+  const scrimGrad = ctx.createLinearGradient(0, scrimTop, 0, height);
+  scrimGrad.addColorStop(0, 'rgba(9, 9, 11, 0)');
+  scrimGrad.addColorStop(1, 'rgba(9, 9, 11, 0.42)');
+  ctx.fillStyle = scrimGrad;
+  ctx.fillRect(0, scrimTop, width, height - scrimTop);
+
+  const barGrad = ctx.createLinearGradient(0, baseY - maxBarH, 0, baseY);
+  barGrad.addColorStop(0, `rgba(255, 255, 255, 0.94)`);
+  barGrad.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, 0.92)`);
+  barGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.45)`);
+
+  ctx.fillStyle = barGrad;
+  for (let i = 0; i < barCount; i++) {
+    const level = clamp(bars[i], 0, 1);
+    const barH = Math.max(minBarH, minBarH + (maxBarH - minBarH) * Math.pow(level, 1.15));
+    const x = startX + i * stepX + (stepX - barW) / 2;
+    const y = baseY - barH;
+    drawRoundedRect(ctx, x, y, barW, barH, barW / 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 /**
  * 1フレーム分の映像（素材・エフェクト・フェード・テロップ）をCanvasへ描画する。
  */
@@ -839,17 +884,36 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   ctx.restore();
 
   if (cut.effect?.motion === 'beat-glow') {
+    const visualStyle = mediaEntry?.visualStyle || 'backlight';
     const hasAnalyzedBeats = Boolean(mediaEntry?.beatAnalysis?.envelope?.length);
     // 再生・書き出し中の音とズレないよう、実際のvideo再生時刻を優先して主旋律強度を参照する
     const actualVideoTime =
       mediaEntry?.mediaType === 'video' && Number.isFinite(mediaEntry.element?.currentTime)
         ? mediaEntry.element.currentTime
         : (mediaEntry?.trimStartSec || 0) + localSec;
-    const beatStrength = hasAnalyzedBeats
-      ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, actualVideoTime)
-      : 0.5 + 0.5 * Math.sin(localSec * 2.6);
-    const backlight = computeBeatBacklightState(beatStrength, mediaEntry?.glowIntensity ?? 0.6);
-    drawBeatBacklightOverlay(ctx, width, height, backlight, mediaEntry?.glowColor || 'warm-gold');
+
+    if (visualStyle === 'backlight' || visualStyle === 'both') {
+      const beatStrength = hasAnalyzedBeats
+        ? sampleBeatStrengthAt(mediaEntry.beatAnalysis, actualVideoTime)
+        : 0.5 + 0.5 * Math.sin(localSec * 2.6);
+      const backlight = computeBeatBacklightState(beatStrength, mediaEntry?.glowIntensity ?? 0.6);
+      drawBeatBacklightOverlay(ctx, width, height, backlight, mediaEntry?.glowColor || 'warm-gold');
+    }
+
+    if (visualStyle === 'bottom-eq' || visualStyle === 'both') {
+      const hasBands = Boolean(mediaEntry?.beatAnalysis?.bands?.length);
+      const bars = hasBands
+        ? sampleEqualizerBarsAt(mediaEntry.beatAnalysis, actualVideoTime, 24)
+        : Array.from({ length: 24 }, (_, idx) => 0.35 + 0.45 * Math.abs(Math.sin(localSec * 4.5 + idx * 0.42)));
+      drawBottomEqualizerOverlay(
+        ctx,
+        width,
+        height,
+        bars,
+        mediaEntry?.glowIntensity ?? 0.6,
+        mediaEntry?.glowColor || 'warm-gold'
+      );
+    }
   }
 
   if (cut.effect?.transitionIn === 'flash') {

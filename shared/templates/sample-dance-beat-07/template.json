@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0.0",
   "id": "sample-dance-beat-07",
-  "title": "Dance Melody Glow・主旋律バックライト演出",
-  "description": "ダンス動画を1本選ぶと、音声の主旋律（ボーカル・メロディ帯域）の抑揚をブラウザ内で自動解析し、映像自体は揺らさず画面の縁だけがバックライトのように滑らかに光ります。最大5分まで調整でき、音ありのまま保存可能です。",
+  "title": "Dance Melody Glow・光＆イコライザー演出",
+  "description": "ダンス動画を1本選ぶと、音声の主旋律や周波数スペクトラムをブラウザ内で自動解析し、「縁バックライト」や「下部イコライザー」で映像を彩ります。最大5分まで調整でき、音ありのまま保存可能です。",
   "status": "published",
   "inputMode": "beat-sync-video",
   "allowSourceAudio": true,

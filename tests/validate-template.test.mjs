@@ -23,6 +23,7 @@ import {
 import {
   computeBeatBacklightState,
   computeBeatEnvelopeFromPcm,
+  sampleEqualizerBarsAt,
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 
@@ -300,6 +301,10 @@ test('computeBeatEnvelopeFromPcm tracks melody-band phrases and computeBeatBackl
   const silent = new Float32Array(sampleRate * 2);
   const silentResult = computeBeatEnvelopeFromPcm(silent, sampleRate);
   assert.equal(silentResult.peakCount, 0);
+  assert.equal(silentResult.bandCount, 8);
+  const silentBars = sampleEqualizerBarsAt(silentResult, 0.5, 24);
+  assert.equal(silentBars.length, 24);
+  assert.ok(silentBars.every((v) => v === 0));
 
   const melody = new Float32Array(sampleRate * 3);
   // 0.3s, 1.1s, 1.9s に主旋律帯域（600Hz）のフレーズを配置
@@ -311,6 +316,10 @@ test('computeBeatEnvelopeFromPcm tracks melody-band phrases and computeBeatBackl
   }
   const melodyResult = computeBeatEnvelopeFromPcm(melody, sampleRate);
   assert.ok(melodyResult.peakCount >= 2, `Expected >= 2 melody peaks, got ${melodyResult.peakCount}`);
+  const activeBars = sampleEqualizerBarsAt(melodyResult, 0.45, 24);
+  assert.equal(activeBars.length, 24);
+  assert.ok(activeBars.some((v) => v > 0.2), 'Expected equalizer bars to react to melody phrase');
+  assert.ok(activeBars.every((v) => v >= 0 && v <= 1));
 
   const quiet = computeBeatBacklightState(0.02, 0.6);
   assert.equal(quiet.alpha, 0);
