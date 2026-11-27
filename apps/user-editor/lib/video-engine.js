@@ -150,6 +150,65 @@ export function getCanvasFilterString(filterName = 'none') {
 }
 
 /**
+ * iOS Safariなどctx.filterがソフトウェア処理に落ちる環境では軽量なGPUオーバーレイ方式を使う。
+ */
+export function shouldUseFastOverlayFilter(userAgent) {
+  const ua =
+    userAgent !== undefined
+      ? String(userAgent || '')
+      : typeof navigator !== 'undefined'
+        ? String(navigator.userAgent || '')
+        : '';
+  const isIpadOs =
+    userAgent === undefined &&
+    /Macintosh/i.test(ua) &&
+    typeof navigator !== 'undefined' &&
+    navigator.maxTouchPoints > 1;
+  return /iPhone|iPad|iPod/i.test(ua) || isIpadOs;
+}
+
+function drawFastColorToneOverlay(ctx, width, height, filterName) {
+  if (!filterName || filterName === 'none') {
+    return;
+  }
+  ctx.save();
+  if (filterName === 'warm') {
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = 'rgba(255, 196, 130, 0.16)';
+    ctx.fillRect(0, 0, width, height);
+  } else if (filterName === 'cool') {
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = 'rgba(120, 185, 255, 0.16)';
+    ctx.fillRect(0, 0, width, height);
+  } else if (filterName === 'vintage') {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(235, 214, 184, 0.22)';
+    ctx.fillRect(0, 0, width, height);
+  } else if (filterName === 'vivid') {
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.restore();
+}
+
+function drawCroppedMediaWithFilter(ctx, element, crop, width, height, filterName) {
+  const activeFilter = filterName || 'none';
+  const useFastOverlay = activeFilter !== 'none' && shouldUseFastOverlayFilter();
+
+  if (!useFastOverlay && activeFilter !== 'none' && 'filter' in ctx) {
+    ctx.filter = getCanvasFilterString(activeFilter);
+  }
+  ctx.drawImage(element, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+  if (!useFastOverlay && activeFilter !== 'none' && 'filter' in ctx) {
+    ctx.filter = 'none';
+  }
+  if (useFastOverlay) {
+    drawFastColorToneOverlay(ctx, width, height, activeFilter);
+  }
+}
+
+/**
  * カット一覧からタイムライン上の開始秒・終了秒配列を組み立てる。
  */
 export function buildTimelineSegments(cuts = []) {
@@ -816,13 +875,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
           cut.effect?.motion || 'none',
           progress
         );
-        if ('filter' in ctx) {
-          ctx.filter = getCanvasFilterString(cut.effect?.filter);
-        }
-        ctx.drawImage(element, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
-        if ('filter' in ctx) {
-          ctx.filter = 'none';
-        }
+        drawCroppedMediaWithFilter(ctx, element, crop, width, height, cut.effect?.filter);
         ctx.restore();
       }
     } else {
@@ -870,13 +923,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
       progress
     );
 
-    if ('filter' in ctx) {
-      ctx.filter = getCanvasFilterString(cut.effect?.filter);
-    }
-    ctx.drawImage(element, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
-    if ('filter' in ctx) {
-      ctx.filter = 'none';
-    }
+    drawCroppedMediaWithFilter(ctx, element, crop, width, height, cut.effect?.filter);
   } else {
     // 素材未選択時でもタイムライン確認ができるようプレースホルダーを描画する
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -971,10 +1018,11 @@ export function selectSupportedRecorderMimeType() {
 }
 
 /**
- * ObjectURLの生成と解放を一元管理し、iOS Safariでの連続操作によるメモリリークを防ぐ。
+ * ObjectURLとDOM上の隠しメディア要素の生成・解放を一元管理し、iOS Safariでのメモリリークを防ぐ。
  */
 export function createMediaResourcePool() {
   const activeUrls = new Set();
+  const activeElements = new Set();
 
   return {
     registerUrl(url) {
@@ -989,7 +1037,33 @@ export function createMediaResourcePool() {
         activeUrls.delete(url);
       }
     },
+    registerElement(el) {
+      if (el) {
+        activeElements.add(el);
+      }
+      return el;
+    },
+    releaseElement(el) {
+      if (el) {
+        if (typeof el.pause === 'function') {
+          el.pause();
+        }
+        if (typeof el.remove === 'function') {
+          el.remove();
+        }
+        activeElements.delete(el);
+      }
+    },
     disposeAll() {
+      for (const el of activeElements) {
+        if (typeof el.pause === 'function') {
+          el.pause();
+        }
+        if (typeof el.remove === 'function') {
+          el.remove();
+        }
+      }
+      activeElements.clear();
       for (const url of activeUrls) {
         URL.revokeObjectURL(url);
       }

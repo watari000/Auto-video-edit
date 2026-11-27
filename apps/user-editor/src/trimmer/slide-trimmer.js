@@ -47,6 +47,9 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
       const previousEntry = state.mediaByCutId[cut.id];
       const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
 
+      if (previousEntry?.element) {
+        resourcePool.releaseElement?.(previousEntry.element);
+      }
       if (previousEntry?.objectUrl) {
         resourcePool.revokeUrl(previousEntry.objectUrl);
       }
@@ -219,6 +222,9 @@ function renderBeatSyncTrimmer(container, template, state, resourcePool, onState
         analyzeVideoFileBeats(file),
       ]);
 
+      if (previousEntry?.element) {
+        resourcePool.releaseElement?.(previousEntry.element);
+      }
       if (previousEntry?.objectUrl) {
         resourcePool.revokeUrl(previousEntry.objectUrl);
       }

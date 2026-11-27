@@ -20,6 +20,7 @@ import {
   getCanvasFilterString,
   parseKineticTokens,
   resolveCutAtTime,
+  shouldUseFastOverlayFilter,
 } from '../apps/user-editor/lib/video-engine.js';
 import {
   computeBeatBacklightState,
@@ -349,4 +350,19 @@ test('computeAdaptiveVideoBitrate scales down for >60s clips and createRecording
   assert.equal(resultBlob.size, 11);
   assert.equal(resultBlob.type, 'video/mp4');
   await sink.cleanup();
+});
+
+test('shouldUseFastOverlayFilter enables GPU overlay fallback on iOS Safari and disables on desktop Chrome', () => {
+  assert.equal(
+    shouldUseFastOverlayFilter(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+    ),
+    true
+  );
+  assert.equal(
+    shouldUseFastOverlayFilter(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+    ),
+    false
+  );
 });

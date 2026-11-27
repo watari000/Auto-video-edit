@@ -42,7 +42,7 @@
       "effect": {
         "motion": "beat-glow",
         "transitionIn": "cut",
-        "filter": "vivid"
+        "filter": "none"
       },
       "textOverlay": {
         "defaultText": "",

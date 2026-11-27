@@ -30,8 +30,9 @@ export function initExporterSection(container, template, state, resourcePool, be
         <div>
           <label for="export-scale-select" class="quality-label">RENDER RESOLUTION // iOS SAFARI SAFE</label>
           <select id="export-scale-select" class="quality-select">
-            <option value="0.6667" selected>軽量 720×1280（スマホ推奨・高速）</option>
-            <option value="1">標準 1080×1920（フルHD）</option>
+            <option value="0.5">超スムーズ 540×960（iPhone最速・カクつき防止）</option>
+            <option value="0.6667" selected>軽量 720×1280（スマホ標準）</option>
+            <option value="1">高画質 1080×1920（PC推奨・フルHD）</option>
           </select>
           ${
             canExportAudio
@@ -118,11 +119,15 @@ export function initExporterSection(container, template, state, resourcePool, be
     const { width, height, fps } = computeSafeRenderDimensions(template.output, scale);
     const { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
 
-    // 書き出し専用のオフスクリーンCanvasを一時生成し、完了後に解放する
+    // 書き出し専用のオフスクリーンCanvasを一時生成し、iOS Safariの間引きを防ぐため隠しホストへ接続する
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = width;
     exportCanvas.height = height;
-    const ctx = exportCanvas.getContext('2d');
+    const hiddenHost = document.getElementById('hidden-media-host') || document.body;
+    exportCanvas.style.cssText =
+      'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+    hiddenHost.appendChild(exportCanvas);
+    const ctx = exportCanvas.getContext('2d', { alpha: false });
 
     let stream = null;
     let audioContextToResume = null;
@@ -145,6 +150,11 @@ export function initExporterSection(container, template, state, resourcePool, be
 
       await prepareVideosForStart(segments, state.mediaByCutId);
       setProgress('カット合成中...', 12);
+
+      // 先頭カットが動画の場合、録画開始前に再生デコーダを立ち上げて冒頭コマ落ちを防ぐ
+      if (primaryVideo) {
+        await primaryVideo.play().catch(() => {});
+      }
 
       const canvasStream = exportCanvas.captureStream(fps);
       const tracks = [...canvasStream.getVideoTracks()];
@@ -209,6 +219,18 @@ export function initExporterSection(container, template, state, resourcePool, be
       const fileName = `Auto-video-edit_${template.id}.${ext}`;
       const audioLabel = exportedWithAudio ? '音声あり' : '無音';
       const opfsLabel = chunkSink.mode === 'opfs' ? ' / OPFS省メモリ保存' : '';
+      const shareType = outputBlob.type || (isMp4 ? 'video/mp4' : 'video/webm');
+
+      let canShareToPhotos = false;
+      let shareFile = null;
+      if (typeof File === 'function' && typeof navigator !== 'undefined' && typeof navigator.canShare === 'function') {
+        try {
+          shareFile = new File([outputBlob], fileName, { type: shareType });
+          canShareToPhotos = navigator.canShare({ files: [shareFile] });
+        } catch {
+          canShareToPhotos = false;
+        }
+      }
 
       setProgress('書き出し完了！', 100);
       resultBox.classList.remove('hidden');
@@ -217,15 +239,41 @@ export function initExporterSection(container, template, state, resourcePool, be
           ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒${opfsLabel}）の書き出しが完了しました。
           ${isMp4 ? '' : '（※このブラウザはMP4直接出力非対応のため WebM 形式で保存されました。Safari等ではMP4で保存されます）'}
         </p>
-        <a href="${activeDownloadUrl}" download="${fileName}" class="btn btn-primary download-cta">
-          ${fileName} を端末に保存する
-        </a>
+        <div class="export-result-actions">
+          ${
+            canShareToPhotos
+              ? '<button type="button" id="export-share-photos-btn" class="btn btn-accent">写真アプリに保存（共有 → ビデオを保存）</button>'
+              : ''
+          }
+          <a href="${activeDownloadUrl}" download="${fileName}" class="btn ${canShareToPhotos ? 'btn-secondary' : 'btn-primary'} download-cta">
+            ${canShareToPhotos ? 'ファイルとして保存' : `${fileName} を端末に保存する`}
+          </a>
+        </div>
+        <p id="export-share-feedback" class="notice notice-tip hidden"></p>
         <p class="export-next-hint">${
           exportedWithAudio
-            ? '保存した動画をそのままSNSへ投稿できます。'
+            ? canShareToPhotos
+              ? 'iPhoneでは「写真アプリに保存」→「ビデオを保存」を選ぶとカメラロールに直接入ります。'
+              : '保存した動画をそのままSNSへ投稿できます。'
             : '保存後、Instagramのリール投稿画面でおすすめ音源をつけてアップしてください。'
         }</p>
       `;
+
+      const shareBtn = resultBox.querySelector('#export-share-photos-btn');
+      const shareFeedback = resultBox.querySelector('#export-share-feedback');
+      if (shareBtn && shareFile) {
+        shareBtn.addEventListener('click', async () => {
+          try {
+            await navigator.share({ files: [shareFile], title: template.title });
+          } catch (shareError) {
+            if (shareError?.name !== 'AbortError' && shareFeedback) {
+              shareFeedback.textContent =
+                '共有シートを開けませんでした。横の「ファイルとして保存」から保存後、ファイルアプリで「ビデオを保存」を選んでください。';
+              shareFeedback.classList.remove('hidden');
+            }
+          }
+        });
+      }
     } catch (error) {
       if (chunkSink && !finalized) {
         await chunkSink.cleanup();
@@ -246,6 +294,7 @@ export function initExporterSection(container, template, state, resourcePool, be
         stream.getTracks().forEach((track) => track.stop());
       }
       pauseAllVideos(state.mediaByCutId);
+      exportCanvas.remove();
       exportCanvas.width = 0;
       exportCanvas.height = 0;
       startBtn.disabled = false;
@@ -319,7 +368,8 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
   return new Promise((resolve) => {
     const frameIntervalMs = 1000 / fps;
     const startWallMs = performance.now();
-    let lastDrawMs = -frameIntervalMs;
+    let nextFrameMs = startWallMs;
+    let lastProgressUiMs = startWallMs;
     let currentVideoCutId = null;
 
     function step(nowMs) {
@@ -342,8 +392,9 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
         return;
       }
 
-      if (nowMs - lastDrawMs >= frameIntervalMs * 0.85) {
-        lastDrawMs = nowMs;
+      if (nowMs >= nextFrameMs) {
+        // 長時間フレーム落ち時も一気に追いついて位相ズレを防ぐ
+        nextFrameMs = Math.max(nowMs + frameIntervalMs * 0.5, nextFrameMs + frameIntervalMs);
         const resolved = resolveCutAtTime(segments, elapsedSec);
         if (resolved) {
           const { segment, localSec } = resolved;
@@ -353,7 +404,9 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
             if (currentVideoCutId !== segment.cut.id) {
               pauseAllVideos(state.mediaByCutId, segment.cut.id);
               currentVideoCutId = segment.cut.id;
-              entry.element.play().catch(() => {});
+              if (entry.element.paused) {
+                entry.element.play().catch(() => {});
+              }
             }
           } else if (currentVideoCutId) {
             pauseAllVideos(state.mediaByCutId);
@@ -370,7 +423,12 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
             state.textByCutId[segment.cut.id]
           );
         }
-        onProgress(elapsedSec / totalDurationSec);
+
+        // UI進捗バー更新は250ms間隔に間引き、毎フレームのレイアウト再計算を防ぐ
+        if (nowMs - lastProgressUiMs >= 250) {
+          lastProgressUiMs = nowMs;
+          onProgress(elapsedSec / totalDurationSec);
+        }
       }
 
       requestAnimationFrame(step);

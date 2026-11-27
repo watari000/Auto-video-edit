@@ -74,15 +74,40 @@ function loadImageElement(objectUrl) {
   });
 }
 
+function getHiddenMediaHost() {
+  if (typeof document === 'undefined' || !document.body) {
+    return null;
+  }
+  let host = document.getElementById('hidden-media-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'hidden-media-host';
+    // iOS SafariはDOM未接続・display:noneの動画デコードを強く間引くため、極小・半透明でDOMに保持する
+    host.style.cssText =
+      'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;overflow:hidden;z-index:-1;';
+    host.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(host);
+  }
+  return host;
+}
+
 function loadVideoElement(objectUrl) {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', 'true');
     video.preload = 'auto';
+
+    const host = getHiddenMediaHost();
+    if (host) {
+      host.appendChild(video);
+    }
 
     const onError = () => {
       cleanup();
+      video.remove();
       reject(
         new Error(
           'この動画形式はブラウザで読み込めませんでした。MP4やMOV形式の動画、または写真を選び直してください。'
@@ -152,7 +177,9 @@ export async function inspectMediaFile(file, requiredDurationSec, resourcePool) 
       };
     }
 
-    const element = await loadVideoElement(objectUrl);
+    const element = resourcePool.registerElement
+      ? resourcePool.registerElement(await loadVideoElement(objectUrl))
+      : await loadVideoElement(objectUrl);
     const width = element.videoWidth;
     const height = element.videoHeight;
     const durationSec = Number.isFinite(element.duration) ? element.duration : requiredDurationSec;
