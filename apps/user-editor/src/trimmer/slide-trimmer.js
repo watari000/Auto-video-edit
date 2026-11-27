@@ -6,11 +6,6 @@ import { inspectMediaFile } from '../precheck/media-precheck.js';
 export function renderTrimmerSection(container, template, state, resourcePool, onStateChange) {
   container.innerHTML = '';
 
-  if (template.inputMode === 'single-clip') {
-    renderSingleClipTrimmer(container, template, state, resourcePool, onStateChange);
-    return;
-  }
-
   const batchBar = document.createElement('div');
   batchBar.className = 'batch-ingest-bar';
   batchBar.innerHTML = `
@@ -153,113 +148,6 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
   });
 
   container.appendChild(list);
-}
-
-function renderSingleClipTrimmer(container, template, state, resourcePool, onStateChange) {
-  const totalDurationSec = Number(
-    template.cuts.reduce((sum, cut) => sum + (Number(cut.durationSec) || 0), 0).toFixed(1)
-  );
-
-  const card = document.createElement('article');
-  card.className = 'cut-row';
-  card.innerHTML = `
-    <div class="cut-row-head">
-      <div class="cut-row-title-wrap">
-        <span class="cut-index">1-CLIP</span>
-        <div>
-          <h3 class="cut-row-title">ダンス動画を1本選ぶだけで自動MVリミックス</h3>
-          <p class="cut-duration-meta">TOTAL ${totalDurationSec.toFixed(1)}S // ${template.cuts.length} AUTO SECTIONS</p>
-        </div>
-      </div>
-      <span class="status-indicator" data-role="status-badge">WAITING</span>
-    </div>
-  `;
-
-  const fileLabel = document.createElement('label');
-  fileLabel.className = 'upload-trigger';
-  const labelTextNode = document.createTextNode('ダンス動画（または写真）を1本選ぶ');
-  fileLabel.appendChild(labelTextNode);
-
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = 'video/*,image/*';
-  fileInput.className = 'sr-only';
-  fileLabel.appendChild(fileInput);
-
-  const feedbackBox = document.createElement('div');
-  feedbackBox.className = 'feedback-area';
-
-  const trimBox = document.createElement('div');
-  trimBox.className = 'trim-box hidden';
-
-  const breakdown = document.createElement('div');
-  breakdown.className = 'remix-breakdown';
-  breakdown.innerHTML = template.cuts
-    .map(
-      (cut, idx) =>
-        `<span class="remix-chip"><strong>${String(idx + 1).padStart(2, '0')}</strong> ${escapeHtml(cut.label)} (${cut.durationSec.toFixed(1)}s)</span>`
-    )
-    .join('');
-
-  card.appendChild(fileLabel);
-  card.appendChild(feedbackBox);
-  card.appendChild(trimBox);
-  card.appendChild(breakdown);
-  container.appendChild(card);
-
-  const statusBadge = card.querySelector('[data-role="status-badge"]');
-
-  function applySingleClipOffsets(baseEntry, baseStartSec) {
-    let offsetSec = 0;
-    template.cuts.forEach((cut) => {
-      state.mediaByCutId[cut.id] = {
-        ...baseEntry,
-        trimStartSec: baseStartSec + offsetSec,
-      };
-      offsetSec += Number(cut.durationSec) || 0;
-    });
-  }
-
-  fileInput.addEventListener('change', async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    statusBadge.textContent = 'ANALYZING...';
-    statusBadge.className = 'status-indicator is-loading';
-    feedbackBox.innerHTML = '';
-
-    try {
-      const previousUrl = state.mediaByCutId[template.cuts[0]?.id]?.objectUrl;
-      const inspected = await inspectMediaFile(file, totalDurationSec, resourcePool);
-
-      if (previousUrl && previousUrl !== inspected.objectUrl) {
-        resourcePool.revokeUrl(previousUrl);
-      }
-
-      applySingleClipOffsets(inspected, 0);
-      statusBadge.textContent = inspected.mediaType === 'video' ? 'REMIX READY' : 'PHOTO READY';
-      statusBadge.className = 'status-indicator is-ready';
-      labelTextNode.textContent = `動画を変更する（${inspected.fileName}）`;
-
-      renderPrecheckMessages(feedbackBox, inspected.warnings);
-      renderSlideTrimmer(
-        trimBox,
-        { label: template.title, durationSec: totalDurationSec },
-        inspected,
-        () => {
-          applySingleClipOffsets(inspected, inspected.trimStartSec || 0);
-          onStateChange();
-        }
-      );
-      onStateChange();
-    } catch (error) {
-      statusBadge.textContent = 'ERROR';
-      statusBadge.className = 'status-indicator is-error';
-      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
-    }
-  });
 }
 
 function renderPrecheckMessages(container, warnings) {

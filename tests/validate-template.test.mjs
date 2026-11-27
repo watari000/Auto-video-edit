@@ -10,7 +10,6 @@ import {
   MAX_OUTPUT_HEIGHT,
   MAX_OUTPUT_WIDTH,
   buildTimelineSegments,
-  computeBeatPulse,
   computeCoverCropRect,
   computeFlashOverlayAlpha,
   computeKineticTokenState,
@@ -53,12 +52,12 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
-test('shared/templates/index.json lists >= 7 valid templates with existing assets and unique IDs', async () => {
+test('shared/templates/index.json lists >= 6 valid templates with existing assets and unique IDs', async () => {
   const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 7);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 6);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -90,7 +89,6 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   assert.equal(seenIds.has('sample-sketch-art-04'), true);
   assert.equal(seenIds.has('sample-kinetic-caption-05'), true);
   assert.equal(seenIds.has('sample-rapid-recap-06'), true);
-  assert.equal(seenIds.has('sample-dance-remix-07'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -290,18 +288,4 @@ test('computeFlashOverlayAlpha peaks at 0s and decays to 0 after 0.09s', () => {
   assert.ok(computeFlashOverlayAlpha(0.045) > 0.2 && computeFlashOverlayAlpha(0.045) < 0.35);
   assert.equal(computeFlashOverlayAlpha(0.09), 0);
   assert.equal(computeFlashOverlayAlpha(0.5), 0);
-});
-
-test('computeBeatPulse peaks on beat boundaries and closeup-upper crops tighter/higher', () => {
-  assert.equal(computeBeatPulse(0, 120), 1);
-  assert.equal(computeBeatPulse(0.5, 120), 1);
-  assert.ok(computeBeatPulse(0.25, 120) < 0.2);
-
-  const centerCrop = computeCoverCropRect(1080, 1920, 1080, 1920, 'none', 0, 0);
-  const beatCrop = computeCoverCropRect(1080, 1920, 1080, 1920, 'beat-zoom', 0, 0);
-  const upperCrop = computeCoverCropRect(1080, 1920, 1080, 1920, 'closeup-upper', 0, 0);
-
-  assert.ok(beatCrop.sw < centerCrop.sw);
-  assert.ok(upperCrop.sw < centerCrop.sw);
-  assert.ok(upperCrop.sy < (1920 - upperCrop.sh) / 2);
 });

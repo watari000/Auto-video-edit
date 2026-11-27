@@ -159,11 +159,9 @@ export function initExporterSection(container, template, state, resourcePool, be
 }
 
 async function prepareVideosForStart(segments, mediaByCutId) {
-  const preparedElements = new Set();
   for (const segment of segments) {
     const entry = mediaByCutId[segment.cut.id];
-    if (entry?.mediaType === 'video' && !preparedElements.has(entry.element)) {
-      preparedElements.add(entry.element);
+    if (entry?.mediaType === 'video') {
       await seekVideo(entry.element, entry.trimStartSec || 0);
     }
   }
@@ -189,9 +187,9 @@ function seekVideo(video, timeSec) {
   });
 }
 
-function pauseAllVideos(mediaByCutId, exceptElement = null) {
-  for (const entry of Object.values(mediaByCutId)) {
-    if (entry?.mediaType === 'video' && entry.element !== exceptElement && !entry.element.paused) {
+function pauseAllVideos(mediaByCutId, exceptCutId = null) {
+  for (const [cutId, entry] of Object.entries(mediaByCutId)) {
+    if (cutId !== exceptCutId && entry?.mediaType === 'video' && !entry.element.paused) {
       entry.element.pause();
     }
   }
@@ -233,11 +231,9 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
 
           if (entry?.mediaType === 'video') {
             if (currentVideoCutId !== segment.cut.id) {
-              pauseAllVideos(state.mediaByCutId, entry.element);
+              pauseAllVideos(state.mediaByCutId, segment.cut.id);
               currentVideoCutId = segment.cut.id;
-              if (entry.element.paused) {
-                entry.element.play().catch(() => {});
-              }
+              entry.element.play().catch(() => {});
             }
           } else if (currentVideoCutId) {
             pauseAllVideos(state.mediaByCutId);

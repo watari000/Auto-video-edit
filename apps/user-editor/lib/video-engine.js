@@ -49,16 +49,6 @@ export function computeSafeRenderDimensions(outputConfig = {}, scale = 1) {
 }
 
 /**
- * テンポ（BPM）に同期したビートパルス強度（拍の瞬間に1.0、直後に減衰）を返す（純粋関数）。
- */
-export function computeBeatPulse(localSec, bpm = 120) {
-  const beatDuration = 60 / Math.max(60, Number(bpm) || 120);
-  const t = Number(localSec) || 0;
-  const phase = (((t % beatDuration) + beatDuration) % beatDuration) / beatDuration;
-  return Number(Math.pow(1 - phase, 3).toFixed(4));
-}
-
-/**
  * 横長・縦長どちらの素材でも9:16枠へ中央トリミング（cover）しつつ、動きエフェクト用の切り出し矩形を計算する。
  */
 export function computeCoverCropRect(
@@ -67,8 +57,7 @@ export function computeCoverCropRect(
   targetWidth,
   targetHeight,
   motion = 'none',
-  progress = 0,
-  localSec = 0
+  progress = 0
 ) {
   if (!sourceWidth || !sourceHeight || !targetWidth || !targetHeight) {
     return { sx: 0, sy: 0, sw: sourceWidth || 1, sh: sourceHeight || 1 };
@@ -92,7 +81,6 @@ export function computeCoverCropRect(
 
   let zoomFactor = 1;
   let panShiftRatio = 0;
-  let verticalBias = 0.5;
 
   if (motion === 'zoom-in') {
     zoomFactor = 1 + 0.08 * p;
@@ -104,13 +92,6 @@ export function computeCoverCropRect(
   } else if (motion === 'pan-right') {
     zoomFactor = 1.06;
     panShiftRatio = -0.5 + p;
-  } else if (motion === 'beat-zoom') {
-    const pulse = computeBeatPulse(localSec, 120);
-    zoomFactor = 1.04 + 0.12 * pulse;
-    panShiftRatio = Math.sin((Number(localSec) || 0) * 28) * 0.18 * pulse;
-  } else if (motion === 'closeup-upper') {
-    zoomFactor = 1.34;
-    verticalBias = 0.28;
   }
 
   const sw = baseSw / zoomFactor;
@@ -118,7 +99,7 @@ export function computeCoverCropRect(
   const maxOffsetX = Math.max(0, (sourceWidth - sw) / 2);
   const centerX = (sourceWidth - sw) / 2 + panShiftRatio * Math.min(maxOffsetX, sw * 0.06);
   const sx = clamp(centerX, 0, Math.max(0, sourceWidth - sw));
-  const sy = clamp((sourceHeight - sh) * verticalBias, 0, Math.max(0, sourceHeight - sh));
+  const sy = clamp((sourceHeight - sh) / 2, 0, Math.max(0, sourceHeight - sh));
 
   return { sx, sy, sw, sh };
 }
@@ -703,8 +684,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
           width,
           height,
           cut.effect?.motion || 'none',
-          progress,
-          localSec
+          progress
         );
         if ('filter' in ctx) {
           ctx.filter = getCanvasFilterString(cut.effect?.filter);
@@ -743,33 +723,6 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
     return;
   }
 
-  if (cut.effect?.transitionIn === 'freeze-sketch') {
-    const freezeSec = Math.min(0.32, duration * 0.35);
-    const sketchStyle = cut.effect?.sketchStyle || 'chalk-dark';
-
-    if (localSec < freezeSec) {
-      if (element && sourceWidth > 0 && sourceHeight > 0) {
-        const sketchCanvas = getOrCreateSketchCanvas(mediaEntry, width, height, sketchStyle);
-        ctx.drawImage(sketchCanvas, 0, 0, width, height);
-      } else {
-        ctx.fillStyle = '#141418';
-        ctx.fillRect(0, 0, width, height);
-      }
-      drawHandDrawnOverlay(
-        ctx,
-        width,
-        height,
-        sketchStyle,
-        clamp(localSec / Math.max(0.001, freezeSec), 0, 1),
-        0.95,
-        0
-      );
-      ctx.restore();
-      drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height, localSec, duration);
-      return;
-    }
-  }
-
   if (cut.effect?.transitionIn === 'fade') {
     const fadeSec = Math.min(0.28, duration * 0.3);
     ctx.globalAlpha = clamp(localSec / fadeSec, 0.15, 1);
@@ -782,8 +735,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
       width,
       height,
       cut.effect?.motion || 'none',
-      progress,
-      localSec
+      progress
     );
 
     if ('filter' in ctx) {
@@ -817,15 +769,6 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
 
   if (cut.effect?.transitionIn === 'flash') {
     const flashAlpha = computeFlashOverlayAlpha(localSec);
-    if (flashAlpha > 0.005) {
-      ctx.save();
-      ctx.fillStyle = `rgba(255, 250, 240, ${flashAlpha})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
-    }
-  } else if (cut.effect?.transitionIn === 'freeze-sketch') {
-    const freezeSec = Math.min(0.32, duration * 0.35);
-    const flashAlpha = computeFlashOverlayAlpha(localSec - freezeSec);
     if (flashAlpha > 0.005) {
       ctx.save();
       ctx.fillStyle = `rgba(255, 250, 240, ${flashAlpha})`;

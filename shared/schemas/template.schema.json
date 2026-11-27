@@ -46,11 +46,6 @@
       "enum": ["draft", "review", "published"],
       "description": "Human-in-the-Loop承認状態。公開は published のみ"
     },
-    "inputMode": {
-      "type": "string",
-      "enum": ["multi-clip", "single-clip"],
-      "description": "素材入力モード（複数カット個別選択 or 1本動画の自動リミックス）"
-    },
     "aspectRatio": {
       "type": "string",
       "enum": ["9:16", "1:1", "4:5"],
@@ -243,11 +238,11 @@
           "properties": {
             "motion": {
               "type": "string",
-              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-zoom", "closeup-upper"]
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right"]
             },
             "transitionIn": {
               "type": "string",
-              "enum": ["cut", "fade", "sketch-to-reality", "flash", "freeze-sketch"]
+              "enum": ["cut", "fade", "sketch-to-reality", "flash"]
             },
             "sketchStyle": {
               "type": "string",
