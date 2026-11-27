@@ -722,29 +722,32 @@ function drawBottomEqualizerOverlay(ctx, width, height, bars, intensity = 0.6, c
 
   const [r, g, b] = BACKLIGHT_COLOR_MAP[colorKey] || BACKLIGHT_COLOR_MAP['warm-gold'];
   const safeIntensity = clamp(Number(intensity) || 0.6, 0.2, 1.4);
+  const normIntensity = clamp((safeIntensity - 0.2) / 1.0, 0, 1);
   const barCount = bars.length;
   const areaWidth = width * 0.78;
   const startX = (width - areaWidth) / 2;
   const baseY = height * 0.91;
-  const maxBarH = height * (0.045 + 0.055 * safeIntensity);
+  // 最大強さ（1.2）で画面の約半分（48%）まで伸び、ダンサーの視認性を保つよう半透明グラデーションにする
+  const maxBarH = height * (0.06 + 0.42 * Math.pow(normIntensity, 1.35));
   const minBarH = Math.max(3, Math.round(height * 0.0045));
   const stepX = areaWidth / barCount;
   const barW = Math.max(2, stepX * 0.56);
 
   ctx.save();
 
-  // 明るい背景動画でもバーが埋もれないよう下端にうっすら暗めのグラデーションを敷く
-  const scrimTop = baseY - maxBarH - height * 0.05;
+  // 明るい背景動画でもバーが埋もれないよう下端のみにうっすら暗めのグラデーションを敷く
+  const scrimH = Math.min(maxBarH + height * 0.05, height * 0.22);
+  const scrimTop = height - scrimH;
   const scrimGrad = ctx.createLinearGradient(0, scrimTop, 0, height);
   scrimGrad.addColorStop(0, 'rgba(9, 9, 11, 0)');
   scrimGrad.addColorStop(1, 'rgba(9, 9, 11, 0.42)');
   ctx.fillStyle = scrimGrad;
-  ctx.fillRect(0, scrimTop, width, height - scrimTop);
+  ctx.fillRect(0, scrimTop, width, scrimH);
 
   const barGrad = ctx.createLinearGradient(0, baseY - maxBarH, 0, baseY);
-  barGrad.addColorStop(0, `rgba(255, 255, 255, 0.94)`);
-  barGrad.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, 0.92)`);
-  barGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.45)`);
+  barGrad.addColorStop(0, `rgba(255, 255, 255, 0.88)`);
+  barGrad.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, 0.78)`);
+  barGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.34)`);
 
   ctx.fillStyle = barGrad;
   for (let i = 0; i < barCount; i++) {
