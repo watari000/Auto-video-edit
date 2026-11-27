@@ -242,7 +242,7 @@
             },
             "transitionIn": {
               "type": "string",
-              "enum": ["cut", "fade", "sketch-to-reality"]
+              "enum": ["cut", "fade", "sketch-to-reality", "flash"]
             },
             "sketchStyle": {
               "type": "string",

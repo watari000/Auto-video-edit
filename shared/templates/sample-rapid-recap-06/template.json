@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-rapid-recap-06",
+  "title": "Rapid-fire Recap・超高速12カット日記",
+  "description": "写真や短い動画をまとめて選ぶだけで、0.35〜0.55秒の瞬きする速さで12カットをリズミカルに繋ぐ、スクラップブック風のハイライト日記（合計6.0秒）テンプレートです。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "ハイテンポビート・シャッター音入りポップ・ドライブ系エレクトロ",
+    "bpmRange": {
+      "min": 124,
+      "max": 140
+    },
+    "suggestedSearchKeywords": [
+      "fast photo dump beat",
+      "rapid recap upbeat",
+      "high energy vlog reel"
+    ],
+    "note": "STEP 2の「まとめて選ぶ」で写真や動画を最大12枚一気に選択すると、自動で順番に配置されます。10〜12枚の思い出を0.4秒前後で畳みかける爽快なテンポです。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：導入タイトル",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.8,
+      "shootingGuide": {
+        "shotType": "最初の印象を決める1枚（風景・空・お気に入り）",
+        "cameraMove": "カメラフラッシュ＋ゆっくりズーム",
+        "tips": "一括選択で1枚目にくる写真です。その日・その旅を象徴する1枚を選ぶと掴みがバッチリ決まります。",
+        "silhouetteAsset": "guide-assets/cut-intro.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "flash",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "MY RECAP",
+        "placeholder": "例：MY RECAP / 週末の記録",
+        "maxLength": 24,
+        "position": "center",
+        "style": "pill"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：高速フラッシュ 01",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.4,
+      "shootingGuide": {
+        "shotType": "日常のワンシーン（移動・街並み）",
+        "cameraMove": "0.4秒のテンポカット",
+        "tips": "写真でも動画でもOK。細かい動きは気にせず、色や雰囲気が良いものをどんどん入れましょう。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "cut",
+        "filter": "warm"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：高速フラッシュ 02",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.4,
+      "shootingGuide": {
+        "shotType": "カフェ・ごはん・手元",
+        "cameraMove": "わずかにズームイン",
+        "tips": "前のカットと色味や距離感が少し違う写真を挟むと、リズミカルな変化が出ます。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      }
+    },
+    {
+      "id": "cut-4",
+      "order": 4,
+      "label": "カット4：ビートフラッシュ 03",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.35,
+      "shootingGuide": {
+        "shotType": "建物・看板・足元など",
+        "cameraMove": "フラッシュ切り替え（0.35秒）",
+        "tips": "シャッターフラッシュに合わせて瞬間的に切り替わるアクセントカットです。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "flash",
+        "filter": "vivid"
+      }
+    },
+    {
+      "id": "cut-5",
+      "order": 5,
+      "label": "カット5：高速フラッシュ 04",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.35,
+      "shootingGuide": {
+        "shotType": "お気に入りの景色・自然",
+        "cameraMove": "右へパン（0.35秒）",
+        "tips": "引きの景色を入れると画面に抜け感が出ます。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "pan-right",
+        "transitionIn": "cut",
+        "filter": "warm"
+      }
+    },
+    {
+      "id": "cut-6",
+      "order": 6,
+      "label": "カット6：高速フラッシュ 05",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.4,
+      "shootingGuide": {
+        "shotType": "小物・チケット・思い出の品",
+        "cameraMove": "ズームアウト（0.4秒）",
+        "tips": "スクラップブックのように、細かいアイテムのアップを混ぜるのがおすすめです。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "cut",
+        "filter": "cool"
+      }
+    },
+    {
+      "id": "cut-7",
+      "order": 7,
+      "label": "カット7：中盤アクセント",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.4,
+      "shootingGuide": {
+        "shotType": "笑顔・乾杯・ハイライト",
+        "cameraMove": "フラッシュ切り替え（0.4秒）",
+        "tips": "中盤に短い一言テロップを置くことで、視聴者の視線を惹きつけます。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "flash",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "一瞬の記憶",
+        "placeholder": "例：一瞬の記憶 / 最高の瞬間",
+        "maxLength": 20,
+        "position": "bottom",
+        "style": "shadow"
+      }
+    },
+    {
+      "id": "cut-8",
+      "order": 8,
+      "label": "カット8：高速フラッシュ 06",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.35,
+      "shootingGuide": {
+        "shotType": "街並み・光・木漏れ日",
+        "cameraMove": "左へパン（0.35秒）",
+        "tips": "逆光や夕方の光が入ったカットがあると映画感が増します。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "pan-left",
+        "transitionIn": "cut",
+        "filter": "warm"
+      }
+    },
+    {
+      "id": "cut-9",
+      "order": 9,
+      "label": "カット9：高速フラッシュ 07",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.35,
+      "shootingGuide": {
+        "shotType": "ディテール・質感ショット",
+        "cameraMove": "固定（0.35秒）",
+        "tips": "ヴィンテージ色味で少しノスタルジックな質感を挟みます。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "none",
+        "transitionIn": "cut",
+        "filter": "vintage"
+      }
+    },
+    {
+      "id": "cut-10",
+      "order": 10,
+      "label": "カット10：終盤ビートフラッシュ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.45,
+      "shootingGuide": {
+        "shotType": "夕暮れ・夜景・ライトアップ",
+        "cameraMove": "フラッシュ＋ズームイン",
+        "tips": "終盤に向けて少しずつ尺が長くなり、締めのリズムを作ります。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "flash",
+        "filter": "vivid"
+      }
+    },
+    {
+      "id": "cut-11",
+      "order": 11,
+      "label": "カット11：余韻へのつなぎ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 0.55,
+      "shootingGuide": {
+        "shotType": "帰り道・空・後ろ姿",
+        "cameraMove": "ズームアウト（0.55秒）",
+        "tips": "フィナーレ直前のワンクッションになる1枚です。",
+        "silhouetteAsset": "guide-assets/cut-flash.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "cut",
+        "filter": "warm"
+      }
+    },
+    {
+      "id": "cut-12",
+      "order": 12,
+      "label": "カット12：フィナーレ（余韻＋動く文字）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.2,
+      "shootingGuide": {
+        "shotType": "ベストショット（1.2秒）",
+        "cameraMove": "ゆっくり引いて文字で締める",
+        "tips": "最後の1.2秒は少し長めに止め、動く文字で心地よく締めくくります。",
+        "silhouetteAsset": "guide-assets/cut-outro.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "fade",
+        "filter": "warm"
+      },
+      "textOverlay": {
+        "defaultText": "また *次の旅* へ",
+        "placeholder": "例：また *次の旅* へ",
+        "maxLength": 30,
+        "position": "center",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#ff4d1c"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:30:00+09:00",
+    "updatedAt": "2026-11-27T17:30:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Rapid-fire Recap 超高速フラッシュカット日記テンプレート（12カット・6.0秒）"
+  }
+}

@@ -63,5 +63,18 @@
     "filterTag": "KINETIC TYPE",
     "templatePath": "./sample-kinetic-caption-05/template.json",
     "coverAsset": "./sample-kinetic-caption-05/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-rapid-recap-06",
+    "title": "Rapid-fire Recap・超高速12カット日記",
+    "category": "RECAP / FLASH",
+    "summary": "写真・動画をまとめて選ぶだけで、0.35〜0.55秒の瞬きするテンポで12カットを繋ぐスクラップブック風ハイライト（6.0秒）です。",
+    "durationSec": 6.0,
+    "cutCount": 12,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 124–140",
+    "filterTag": "RAPID FLASH",
+    "templatePath": "./sample-rapid-recap-06/template.json",
+    "coverAsset": "./sample-rapid-recap-06/guide-assets/cut-intro.svg"
   }
 ]

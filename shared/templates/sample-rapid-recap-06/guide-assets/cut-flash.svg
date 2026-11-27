@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="高速フラッシュカット：0.35〜0.55秒でテンポよく繋ぐ1枚用ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">BURST // 0.35-0.55S</text>
+  <!-- Stacked scrapbook frames -->
+  <rect x="38" y="88" width="104" height="142" rx="4" fill="#f4f1ea" fill-opacity="0.04" stroke="#f4f1ea" stroke-opacity="0.3" transform="rotate(-6 90 160)" />
+  <rect x="38" y="88" width="104" height="142" rx="4" fill="#d4af7a" fill-opacity="0.1" stroke="#d4af7a" stroke-width="1.4" transform="rotate(3 90 160)" />
+  <circle cx="90" cy="158" r="24" fill="none" stroke="#ff4d1c" stroke-width="1.4" stroke-dasharray="4 3" />
+  <text x="90" y="266" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#f4f1ea">RAPID CUT BEAT</text>
+</svg>

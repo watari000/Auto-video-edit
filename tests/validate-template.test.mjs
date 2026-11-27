@@ -11,6 +11,7 @@ import {
   MAX_OUTPUT_WIDTH,
   buildTimelineSegments,
   computeCoverCropRect,
+  computeFlashOverlayAlpha,
   computeKineticTokenState,
   computeSafeRenderDimensions,
   computeSketchRevealState,
@@ -51,12 +52,12 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
-test('shared/templates/index.json lists >= 5 valid templates with existing assets and unique IDs', async () => {
+test('shared/templates/index.json lists >= 6 valid templates with existing assets and unique IDs', async () => {
   const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 5);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 6);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -87,6 +88,7 @@ test('shared/templates/index.json lists >= 5 valid templates with existing asset
 
   assert.equal(seenIds.has('sample-sketch-art-04'), true);
   assert.equal(seenIds.has('sample-kinetic-caption-05'), true);
+  assert.equal(seenIds.has('sample-rapid-recap-06'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -279,4 +281,11 @@ test('computeKineticTokenState staggers word appearance and pop-in animation', (
   assert.equal(settled.visible, true);
   assert.equal(settled.opacity, 1);
   assert.equal(settled.scale, 1);
+});
+
+test('computeFlashOverlayAlpha peaks at 0s and decays to 0 after 0.09s', () => {
+  assert.equal(computeFlashOverlayAlpha(0), 0.55);
+  assert.ok(computeFlashOverlayAlpha(0.045) > 0.2 && computeFlashOverlayAlpha(0.045) < 0.35);
+  assert.equal(computeFlashOverlayAlpha(0.09), 0);
+  assert.equal(computeFlashOverlayAlpha(0.5), 0);
 });

@@ -708,6 +708,46 @@
 }
 
 /* === STEP 02: Cut Rows & Filmstrip Trimmer === */
+.batch-ingest-bar {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.batch-ingest-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-ingest-title {
+  margin: 0 0 2px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--accent-champagne);
+}
+
+.batch-ingest-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.batch-ingest-status {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-subtle);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--sem-ok);
+}
+
 .cut-editor-list {
   display: grid;
   gap: 14px;

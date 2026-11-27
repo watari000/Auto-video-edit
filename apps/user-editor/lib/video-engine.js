@@ -635,6 +635,17 @@ function drawHandDrawnOverlay(ctx, width, height, sketchStyle, frameDrawProgress
 }
 
 /**
+ * フラッシュ切り替え（transitionIn: "flash"）の現在時刻における白い閃光の不透明度を返す（純粋関数）。
+ */
+export function computeFlashOverlayAlpha(localSec) {
+  const t = Number(localSec) || 0;
+  if (t < 0 || t >= 0.09) {
+    return 0;
+  }
+  return Number((0.55 * (1 - clamp(t / 0.09, 0, 1))).toFixed(4));
+}
+
+/**
  * 1フレーム分の映像（素材・エフェクト・フェード・テロップ）をCanvasへ描画する。
  */
 export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, textOverride) {
@@ -755,6 +766,17 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   }
 
   ctx.restore();
+
+  if (cut.effect?.transitionIn === 'flash') {
+    const flashAlpha = computeFlashOverlayAlpha(localSec);
+    if (flashAlpha > 0.005) {
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 250, 240, ${flashAlpha})`;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+  }
+
   drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height, localSec, duration);
 }
 

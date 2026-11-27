@@ -1,13 +1,66 @@
 import { inspectMediaFile } from '../precheck/media-precheck.js';
 
 /**
- * STEP 02：カットごとの素材選択、プリチェック案内、長尺動画のフィルムストリップ式スライドトリミングを提供する。
+ * STEP 02：複数素材の一括配置、カットごとの素材選択、プリチェック案内、スライドトリミングを提供する。
  */
 export function renderTrimmerSection(container, template, state, resourcePool, onStateChange) {
   container.innerHTML = '';
 
+  const batchBar = document.createElement('div');
+  batchBar.className = 'batch-ingest-bar';
+  batchBar.innerHTML = `
+    <div class="batch-ingest-row">
+      <div>
+        <p class="batch-ingest-title">まとめて自動配置（最大 ${template.cuts.length} 件）</p>
+        <p class="batch-ingest-desc">写真や動画を複数選ぶと、カット 01 から順番に自動で割り当てます。</p>
+      </div>
+      <label class="btn btn-primary batch-upload-btn">
+        写真・動画をまとめて選ぶ
+        <input type="file" accept="video/*,image/*" multiple class="sr-only" />
+      </label>
+    </div>
+    <p id="batch-ingest-status" class="batch-ingest-status hidden"></p>
+  `;
+
+  const batchInput = batchBar.querySelector('input[type="file"]');
+  const batchStatus = batchBar.querySelector('#batch-ingest-status');
+  container.appendChild(batchBar);
+
   const list = document.createElement('div');
   list.className = 'cut-editor-list';
+
+  const cutRefs = [];
+
+  async function assignFileToCut(cut, file, refs) {
+    const { statusBadge, feedbackBox, trimBox, labelTextNode } = refs;
+    statusBadge.textContent = 'ANALYZING...';
+    statusBadge.className = 'status-indicator is-loading';
+    feedbackBox.innerHTML = '';
+
+    try {
+      const previousEntry = state.mediaByCutId[cut.id];
+      const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
+
+      if (previousEntry?.objectUrl) {
+        resourcePool.revokeUrl(previousEntry.objectUrl);
+      }
+
+      state.mediaByCutId[cut.id] = inspected;
+      statusBadge.textContent = inspected.mediaType === 'video' ? 'VIDEO READY' : 'PHOTO READY';
+      statusBadge.className = 'status-indicator is-ready';
+      labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
+
+      renderPrecheckMessages(feedbackBox, inspected.warnings);
+      renderSlideTrimmer(trimBox, cut, inspected, onStateChange);
+      onStateChange();
+      return true;
+    } catch (error) {
+      statusBadge.textContent = 'ERROR';
+      statusBadge.className = 'status-indicator is-error';
+      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
+      return false;
+    }
+  }
 
   template.cuts.forEach((cut, index) => {
     const card = document.createElement('article');
@@ -50,39 +103,48 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
     card.appendChild(trimBox);
     list.appendChild(card);
 
+    const refs = {
+      cut,
+      statusBadge: card.querySelector('[data-role="status-badge"]'),
+      feedbackBox,
+      trimBox,
+      labelTextNode,
+    };
+    cutRefs.push(refs);
+
     fileInput.addEventListener('change', async (event) => {
       const file = event.target.files?.[0];
       if (!file) {
         return;
       }
-
-      const statusBadge = card.querySelector('[data-role="status-badge"]');
-      statusBadge.textContent = 'ANALYZING...';
-      statusBadge.className = 'status-indicator is-loading';
-      feedbackBox.innerHTML = '';
-
-      try {
-        const previousEntry = state.mediaByCutId[cut.id];
-        const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
-
-        if (previousEntry?.objectUrl) {
-          resourcePool.revokeUrl(previousEntry.objectUrl);
-        }
-
-        state.mediaByCutId[cut.id] = inspected;
-        statusBadge.textContent = inspected.mediaType === 'video' ? 'VIDEO READY' : 'PHOTO READY';
-        statusBadge.className = 'status-indicator is-ready';
-        labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
-
-        renderPrecheckMessages(feedbackBox, inspected.warnings);
-        renderSlideTrimmer(trimBox, cut, inspected, onStateChange);
-        onStateChange();
-      } catch (error) {
-        statusBadge.textContent = 'ERROR';
-        statusBadge.className = 'status-indicator is-error';
-        feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
-      }
+      await assignFileToCut(cut, file, refs);
     });
+  });
+
+  batchInput.addEventListener('change', async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) {
+      return;
+    }
+
+    const limit = Math.min(files.length, cutRefs.length);
+    batchStatus.classList.remove('hidden');
+    let okCount = 0;
+
+    for (let i = 0; i < limit; i++) {
+      batchStatus.textContent = `${i + 1} / ${limit} 件を読み込み・自動配置中...`;
+      const success = await assignFileToCut(cutRefs[i].cut, files[i], cutRefs[i]);
+      if (success) {
+        okCount += 1;
+      }
+    }
+
+    const extraNote =
+      files.length > cutRefs.length
+        ? `（選択された ${files.length} 件のうち先頭 ${cutRefs.length} 件を配置しました）`
+        : '';
+    batchStatus.textContent = `${okCount} / ${limit} 件を自動配置しました！各カットの差し替えや秒数枠調整もできます。${extraNote}`;
+    batchInput.value = '';
   });
 
   container.appendChild(list);
