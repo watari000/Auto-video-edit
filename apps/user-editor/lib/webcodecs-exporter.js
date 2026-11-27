@@ -8,6 +8,7 @@ import {
   ensureBizarreSegmenterReady,
   segmentFrameToSubjectMask,
 } from './bizarre-shift-engine.js';
+import { segmentFrameToSubjectBoxes } from './scouter-hud-engine.js';
 
 /**
  * タイムライン全体から固定FPS（例: 30fps）のフレーム計画と連続カットグループを生成する。
@@ -375,7 +376,9 @@ export async function exportTimelineWithWebCodecs({
   }
 
   try {
-    const needsBizarreAi = segments.some((s) => s.cut.effect?.motion === 'bizarre-shift');
+    const needsBizarreAi = segments.some(
+      (s) => s.cut.effect?.motion === 'bizarre-shift' || s.cut.effect?.motion === 'scouter-hud'
+    );
     if (needsBizarreAi) {
       await ensureBizarreSegmenterReady().catch(() => null);
     }
@@ -465,6 +468,22 @@ export async function exportTimelineWithWebCodecs({
                       } else {
                         frameEntry.subjectMask = null;
                       }
+                    } else if (cut.effect?.motion === 'scouter-hud') {
+                      const crop = computeCoverCropRect(
+                        frameEntry.width,
+                        frameEntry.height,
+                        width,
+                        height,
+                        'none',
+                        0
+                      );
+                      frameEntry.subjectBoxes =
+                        (await segmentFrameToSubjectBoxes(
+                          frameEntry.element,
+                          crop,
+                          width,
+                          height
+                        ).catch(() => null)) || frameEntry.subjectBoxes || [];
                     }
                     drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
                   } else {
@@ -523,6 +542,22 @@ export async function exportTimelineWithWebCodecs({
                   } else {
                     frameEntry.subjectMask = null;
                   }
+                } else if (cut.effect?.motion === 'scouter-hud') {
+                  const crop = computeCoverCropRect(
+                    frameEntry.width,
+                    frameEntry.height,
+                    width,
+                    height,
+                    'none',
+                    0
+                  );
+                  frameEntry.subjectBoxes =
+                    (await segmentFrameToSubjectBoxes(
+                      frameEntry.element,
+                      crop,
+                      width,
+                      height
+                    ).catch(() => null)) || frameEntry.subjectBoxes || [];
                 }
                 drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
               } else if (entry && cut.effect?.motion === 'bizarre-shift' && entry.element) {
@@ -545,6 +580,25 @@ export async function exportTimelineWithWebCodecs({
                 }
                 frameEntry.subjectMask =
                   frame.localSec >= triggerSec ? frameEntry._cachedImageMask : null;
+                drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
+              } else if (entry && cut.effect?.motion === 'scouter-hud' && entry.element) {
+                if (!frameEntry._cachedImageBoxes) {
+                  const crop = computeCoverCropRect(
+                    frameEntry.width,
+                    frameEntry.height,
+                    width,
+                    height,
+                    'none',
+                    0
+                  );
+                  frameEntry._cachedImageBoxes = await segmentFrameToSubjectBoxes(
+                    frameEntry.element,
+                    crop,
+                    width,
+                    height
+                  ).catch(() => []);
+                }
+                frameEntry.subjectBoxes = frameEntry._cachedImageBoxes;
                 drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
               } else {
                 drawCutFrame(ctx, cut, entry, frame.localSec, width, height, text);

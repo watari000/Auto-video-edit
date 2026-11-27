@@ -5,6 +5,7 @@ import {
 } from './audio-beat-analyzer.js';
 import { drawBizarreShiftComposite } from './bizarre-shift-engine.js';
 import { drawMatrixCodeComposite } from './matrix-code-engine.js';
+import { drawScouterHudComposite } from './scouter-hud-engine.js';
 
 const BACKLIGHT_COLOR_MAP = {
   'warm-gold': [245, 198, 128],
@@ -942,6 +943,22 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
         triggerSec: mediaEntry?.matrixTriggerSec ?? 2.0,
         density: mediaEntry?.matrixDensity || 'standard',
         visibility: mediaEntry?.matrixVisibility || 'silhouette',
+      });
+    } else if (cut.effect?.motion === 'scouter-hud') {
+      const crop = computeCoverCropRect(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        'none',
+        progress
+      );
+      drawScouterHudComposite(ctx, element, crop, width, height, localSec, {
+        themeKey: mediaEntry?.scouterTheme || 'ai-emerald',
+        presetKey: mediaEntry?.scouterPreset || 'auto',
+        customPower: mediaEntry?.scouterCustomPower ?? 530000,
+        customLabel: mediaEntry?.scouterCustomLabel || '',
+        subjectBoxes: mediaEntry?.subjectBoxes || [],
       });
     } else {
       // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ

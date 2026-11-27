@@ -5,6 +5,7 @@ import {
   resolveCutAtTime,
 } from '../../lib/video-engine.js';
 import { segmentFrameToSubjectMask } from '../../lib/bizarre-shift-engine.js';
+import { segmentFrameToSubjectBoxes } from '../../lib/scouter-hud-engine.js';
 
 const PREVIEW_WIDTH = 360;
 const PREVIEW_HEIGHT = 640;
@@ -245,6 +246,51 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
                     state.textByCutId[latest.segment.cut.id]
                   );
                 }
+              }
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            mediaEntry._segmentInFlight = false;
+          });
+      }
+    } else if (
+      segment.cut.effect?.motion === 'scouter-hud' &&
+      mediaEntry?.element &&
+      mediaEntry.width > 0 &&
+      !mediaEntry._segmentInFlight
+    ) {
+      const shouldUpdateBoxes =
+        (mediaEntry.mediaType === 'video' &&
+          performance.now() - (mediaEntry._lastSegMs || 0) >= 140) ||
+        !mediaEntry.subjectBoxes;
+
+      if (shouldUpdateBoxes) {
+        mediaEntry._segmentInFlight = true;
+        const crop = computeCoverCropRect(
+          mediaEntry.width,
+          mediaEntry.height,
+          PREVIEW_WIDTH,
+          PREVIEW_HEIGHT,
+          'none',
+          0
+        );
+        segmentFrameToSubjectBoxes(mediaEntry.element, crop, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+          .then((boxes) => {
+            mediaEntry.subjectBoxes = boxes || [];
+            mediaEntry._lastSegMs = performance.now();
+            if (!isPlaying) {
+              const latest = resolveCutAtTime(segments, currentSec);
+              if (latest && latest.segment.cut.id === segment.cut.id) {
+                drawCutFrame(
+                  ctx,
+                  latest.segment.cut,
+                  mediaEntry,
+                  latest.localSec,
+                  PREVIEW_WIDTH,
+                  PREVIEW_HEIGHT,
+                  state.textByCutId[latest.segment.cut.id]
+                );
               }
             }
           })

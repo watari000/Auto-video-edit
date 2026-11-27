@@ -5,6 +5,7 @@ import {
   resolveCutAtTime,
 } from '../../lib/video-engine.js';
 import { createSyntheticSubjectMask } from '../../lib/bizarre-shift-engine.js';
+import { createSyntheticScouterBoxes } from '../../lib/scouter-hud-engine.js';
 
 const SAMPLE_WIDTH = 180;
 const SAMPLE_HEIGHT = 320;
@@ -206,6 +207,10 @@ export function renderGalleryView(container, catalogItems, activeTemplateId, onS
             sampleEntry.bizarrePalette = 'golden-bizarre';
             sampleEntry.bizarreTouch = 'anime-ink';
             sampleEntry.bizarreTriggerSec = 2.0;
+          } else if (cut.effect?.motion === 'scouter-hud') {
+            sampleEntry.subjectBoxes = createSyntheticScouterBoxes();
+            sampleEntry.scouterTheme = 'ai-emerald';
+            sampleEntry.scouterPreset = 'power-530000';
           }
           cardState.sampleMediaByCutId[cut.id] = sampleEntry;
         });

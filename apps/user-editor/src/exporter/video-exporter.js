@@ -10,6 +10,7 @@ import {
 import { createRecordingChunkSink } from '../../lib/opfs-chunk-sink.js';
 import { exportTimelineWithWebCodecs } from '../../lib/webcodecs-exporter.js';
 import { segmentFrameToSubjectMask } from '../../lib/bizarre-shift-engine.js';
+import { segmentFrameToSubjectBoxes } from '../../lib/scouter-hud-engine.js';
 
 async function acquireScreenWakeLock() {
   if (typeof navigator === 'undefined' || typeof navigator.wakeLock?.request !== 'function') {
@@ -489,6 +490,23 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
                   entry.subjectMask = mask;
                   entry._lastSegMs = performance.now();
                 }
+              })
+              .catch(() => {})
+              .finally(() => {
+                entry._segmentInFlight = false;
+              });
+          } else if (
+            segment.cut.effect?.motion === 'scouter-hud' &&
+            entry?.mediaType === 'video' &&
+            !entry._segmentInFlight &&
+            nowMs - (entry._lastSegMs || 0) >= 120
+          ) {
+            entry._segmentInFlight = true;
+            const crop = computeCoverCropRect(entry.width, entry.height, width, height, 'none', 0);
+            segmentFrameToSubjectBoxes(entry.element, crop, width, height)
+              .then((boxes) => {
+                entry.subjectBoxes = boxes || [];
+                entry._lastSegMs = performance.now();
               })
               .catch(() => {})
               .finally(() => {

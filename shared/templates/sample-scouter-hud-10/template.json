@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-scouter-hud-10",
+  "title": "Scouter AI Vision・ロボ視界＆戦闘力計測",
+  "description": "AIロボットの光学視界HUDを通して、映っている人物や動物（犬・猫・鳥など）を自動ロックオンし、スカウターのように戦闘力をパラパラ計測して数値表示します。",
+  "status": "published",
+  "inputMode": "scouter-hud",
+  "allowSourceAudio": true,
+  "defaultIncludeAudio": false,
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "SF・サイバー／バトル緊張BGM（元動画音声のON/OFF切替可・初期OFF）",
+    "bpmRange": {
+      "min": 110,
+      "max": 150
+    },
+    "suggestedSearchKeywords": [
+      "sci-fi hud",
+      "cyber scanner",
+      "epic battle synth"
+    ],
+    "note": "STEP 2でロボット視界の色（緑/赤/青など）や有名な戦闘力数値プリセット（5 / 530,000 / 自由入力など）を選べます。STEP 4で音声ON/OFF（初期OFF）を選択可能。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "AIロボ視界＆戦闘力スカウター計測",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 6.0,
+      "shootingGuide": {
+        "shotType": "人物・犬・猫・鳥などが映る動画または写真",
+        "cameraMove": "通常撮影（AIが自動で被写体をロックオンして戦闘力を計測）",
+        "tips": "人物やペットが画面内に映ると自動でターゲット枠と戦闘力が追従します。有名な数値プリセットや任意の戦闘力への変更も可能です。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "scouter-hud",
+        "transitionIn": "cut",
+        "filter": "none"
+      },
+      "textOverlay": {
+        "defaultText": "",
+        "placeholder": "例：TARGET *LOCKED*（空欄ならHUDのみ）",
+        "maxLength": 30,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#34d399"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-28T01:05:00+09:00",
+    "updatedAt": "2026-11-28T01:05:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "AIロボット視界HUD・人物/動物の自動ターゲット枠追従・戦闘力カウントアップ計測＆有名数値プリセット"
+  }
+}

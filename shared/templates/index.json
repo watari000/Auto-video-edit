@@ -115,5 +115,18 @@
     "filterTag": "MATRIX CODE",
     "templatePath": "./sample-matrix-code-09/template.json",
     "coverAsset": "./sample-matrix-code-09/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-scouter-hud-10",
+    "title": "Scouter AI Vision・ロボ視界＆戦闘力計測",
+    "category": "SCI-FI / SCOUTER HUD",
+    "summary": "AIロボットの視界HUDで人物や動物を自動ロックオンし、スカウターのように戦闘力を数値化して表示します（有名数値プリセット対応）。",
+    "durationSec": 6.0,
+    "cutCount": 1,
+    "aspectRatio": "9:16",
+    "bpmLabel": "AI TARGETING",
+    "filterTag": "POWER SCAN",
+    "templatePath": "./sample-scouter-hud-10/template.json",
+    "coverAsset": "./sample-scouter-hud-10/guide-assets/cut-01.svg"
   }
 ]

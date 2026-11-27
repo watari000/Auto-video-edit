@@ -54,6 +54,10 @@ import {
   normalizeLumaContrast,
   sampleMatrixCell,
 } from '../apps/user-editor/lib/matrix-code-engine.js';
+import {
+  computeScouterReadoutState,
+  detectSubjectBoxesFromClasses,
+} from '../apps/user-editor/lib/scouter-hud-engine.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 import { APP_UPDATED_AT, APP_VERSION } from '../apps/user-editor/src/version.js';
 
@@ -92,7 +96,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 9);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 10);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -127,6 +131,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   assert.equal(seenIds.has('sample-dance-beat-07'), true);
   assert.equal(seenIds.has('sample-bizarre-shift-08'), true);
   assert.equal(seenIds.has('sample-matrix-code-09'), true);
+  assert.equal(seenIds.has('sample-scouter-hud-10'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -634,4 +639,45 @@ test('sample-matrix-code-09 defaults audio to OFF and matrix-code-engine transit
   ]);
   const flow = computeContourFlowField(horizEdge, 3, 3);
   assert.ok(Math.abs(flow.tx[1 * 3 + 1]) > Math.abs(flow.ty[1 * 3 + 1]));
+});
+
+test('sample-scouter-hud-10 defaults audio to OFF and scouter-hud-engine detects targets & power levels', async () => {
+  const raw = await fs.readFile(
+    path.join(REPO_ROOT, 'shared', 'templates', 'sample-scouter-hud-10', 'template.json'),
+    'utf8'
+  );
+  const template = JSON.parse(raw);
+  assert.equal(template.inputMode, 'scouter-hud');
+  assert.equal(template.allowSourceAudio, true);
+  assert.equal(template.defaultIncludeAudio, false);
+
+  // 6x6 マスク左上に人物(15)、右下に犬(12)を配置し、2つの独立ボックスとして検出されるか検証
+  const classes = new Uint8Array([
+    15, 15, 0, 0, 0, 0,
+    15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 12, 12,
+    0, 0, 0, 0, 12, 12,
+    0, 0, 0, 0, 0, 0,
+  ]);
+  const boxes = detectSubjectBoxesFromClasses(classes, 6, 6, 3);
+  assert.equal(boxes.length, 2);
+  assert.equal(boxes[0].isAnimal || boxes[1].isAnimal, true);
+
+  const scanning = computeScouterReadoutState(0.3, { presetKey: 'power-530000' });
+  assert.equal(scanning.phase, 'scanning');
+
+  const locked = computeScouterReadoutState(1.2, { presetKey: 'power-530000' });
+  assert.equal(locked.phase, 'locked');
+  assert.equal(locked.numericPower, 530000);
+  assert.equal(locked.displayPower, '530,000');
+  assert.equal(locked.isHighThreat, true);
+
+  const customLocked = computeScouterReadoutState(1.5, {
+    presetKey: 'custom',
+    customPower: 123456,
+    customLabel: 'BOSS',
+  });
+  assert.equal(customLocked.displayPower, '123,456');
+  assert.equal(customLocked.tag, 'BOSS');
 });

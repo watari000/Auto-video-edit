@@ -7,15 +7,15 @@ const MATRIX_GLYPHS =
   '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const DENSITY_CONFIG = {
-  fine: { cols: 104, fontRatio: 1.08 },
-  standard: { cols: 76, fontRatio: 1.1 },
-  bold: { cols: 50, fontRatio: 1.14 },
+  fine: { cols: 112, fontRatio: 1.08 },
+  standard: { cols: 84, fontRatio: 1.1 },
+  bold: { cols: 56, fontRatio: 1.14 },
 };
 
 const VISIBILITY_CONFIG = {
-  silhouette: { gamma: 1.45, edgeBoost: 0.52, floorCutoff: 0.1, flowMix: 0.42 },
-  balanced: { gamma: 1.25, edgeBoost: 0.4, floorCutoff: 0.06, flowMix: 0.48 },
-  rain: { gamma: 1.1, edgeBoost: 0.3, floorCutoff: 0.03, flowMix: 0.56 },
+  silhouette: { gamma: 1.7, lumaWeight: 0.42, edgeBoost: 0.96, floorCutoff: 0.14, flowMix: 0.36 },
+  balanced: { gamma: 1.45, lumaWeight: 0.56, edgeBoost: 0.78, floorCutoff: 0.09, flowMix: 0.42 },
+  rain: { gamma: 1.25, lumaWeight: 0.66, edgeBoost: 0.6, floorCutoff: 0.05, flowMix: 0.5 },
 };
 
 let reusableLumaCanvas = null;
@@ -115,18 +115,22 @@ export function computeContourFlowField(lumaGrid, cols, rows) {
       const x0 = x > 0 ? x - 1 : 0;
       const x1 = x + 1 < cols ? x + 1 : cols - 1;
 
-      const gx = lumaGrid[y * cols + x1] - lumaGrid[y * cols + x0];
-      const gy = lumaGrid[y1 * cols + x] - lumaGrid[y0 * cols + x];
-      const mag = Math.hypot(gx, gy);
+      // 3x3 Sobel カーネルでノイズを抑えつつ輪郭線をくっきり抽出する
+      const gx =
+        -lumaGrid[y0 * cols + x0] + lumaGrid[y0 * cols + x1] +
+        -2 * lumaGrid[y * cols + x0] + 2 * lumaGrid[y * cols + x1] +
+        -lumaGrid[y1 * cols + x0] + lumaGrid[y1 * cols + x1];
+      const gy =
+        -lumaGrid[y0 * cols + x0] - 2 * lumaGrid[y0 * cols + x] - lumaGrid[y0 * cols + x1] +
+        lumaGrid[y1 * cols + x0] + 2 * lumaGrid[y1 * cols + x] + lumaGrid[y1 * cols + x1];
+      const mag = Math.hypot(gx, gy) * 0.35;
       const idx = y * cols + x;
 
-      edges[idx] = Math.min(1, mag * 1.6);
-      if (mag > 0.005) {
-        // 勾配に直交する方向 (-gy, gx) が輪郭線に沿う接線ベクトル
-        rawTx[idx] = -gy / mag;
-        rawTy[idx] = gx / mag;
+      edges[idx] = Math.min(1, Math.pow(mag, 0.8) * 1.35);
+      if (mag > 0.008) {
+        rawTx[idx] = -gy / (mag / 0.35);
+        rawTy[idx] = gx / (mag / 0.35);
       } else {
-        // 平坦部は緩やかな斜めストリームをデフォルトにして不自然な停止を防ぐ
         rawTx[idx] = -0.707;
         rawTy[idx] = 0.707;
       }
@@ -305,7 +309,7 @@ export function drawMatrixCodeComposite(
       const idx = row * cols + col;
       const luma = Math.pow(lumaGrid[idx], vCfg.gamma);
       const edge = edgeGrid[idx];
-      const baseTone = Math.min(1, luma * 0.78 + edge * vCfg.edgeBoost);
+      const baseTone = Math.min(1, luma * vCfg.lumaWeight + edge * vCfg.edgeBoost);
 
       if (baseTone < vCfg.floorCutoff) {
         continue;

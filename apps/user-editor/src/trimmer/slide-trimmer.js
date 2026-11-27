@@ -5,6 +5,11 @@ import {
   ensureBizarreSegmenterReady,
   segmentFrameToSubjectMask,
 } from '../../lib/bizarre-shift-engine.js';
+import {
+  SCOUTER_POWER_PRESETS,
+  SCOUTER_THEMES,
+  segmentFrameToSubjectBoxes,
+} from '../../lib/scouter-hud-engine.js';
 import { computeCoverCropRect } from '../../lib/video-engine.js';
 
 /**
@@ -25,6 +30,11 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
 
   if (template.inputMode === 'matrix-code') {
     renderMatrixCodeTrimmer(container, template, state, resourcePool, onStateChange);
+    return;
+  }
+
+  if (template.inputMode === 'scouter-hud') {
+    renderScouterHudTrimmer(container, template, state, resourcePool, onStateChange);
     return;
   }
 
@@ -911,6 +921,274 @@ function renderMatrixCodeControls(controlsBox, cut, mediaEntry, matrixMeta, onSt
 
   visibilitySelect.addEventListener('change', () => {
     mediaEntry.matrixVisibility = visibilitySelect.value;
+    onStateChange();
+  });
+
+  syncLabels();
+}
+
+function renderScouterHudTrimmer(container, template, state, resourcePool, onStateChange) {
+  const cut = template.cuts[0];
+  if (!cut) {
+    return;
+  }
+
+  const card = document.createElement('article');
+  card.className = 'cut-row';
+  card.innerHTML = `
+    <div class="cut-row-head">
+      <div class="cut-row-title-wrap">
+        <span class="cut-index">HUD</span>
+        <div>
+          <h3 class="cut-row-title">${escapeHtml(cut.label)}</h3>
+          <p class="cut-duration-meta" data-role="scouter-meta">DURATION ${cut.durationSec.toFixed(1)}S // AI SCOUTER</p>
+        </div>
+      </div>
+      <span class="status-indicator" data-role="status-badge">WAITING</span>
+    </div>
+  `;
+
+  const fileLabel = document.createElement('label');
+  fileLabel.className = 'upload-trigger';
+  const labelTextNode = document.createTextNode('動画または写真を選ぶ（人物・動物を自動ロックオン）');
+  fileLabel.appendChild(labelTextNode);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'video/*,image/*';
+  fileInput.className = 'sr-only';
+  fileLabel.appendChild(fileInput);
+
+  const feedbackBox = document.createElement('div');
+  feedbackBox.className = 'feedback-area';
+
+  const controlsBox = document.createElement('div');
+  controlsBox.className = 'beat-controls-grid hidden';
+
+  card.appendChild(fileLabel);
+  card.appendChild(feedbackBox);
+  card.appendChild(controlsBox);
+  container.appendChild(card);
+
+  const statusBadge = card.querySelector('[data-role="status-badge"]');
+  const scouterMeta = card.querySelector('[data-role="scouter-meta"]');
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    statusBadge.textContent = 'LOADING AI...';
+    statusBadge.className = 'status-indicator is-loading';
+    feedbackBox.innerHTML =
+      '<p class="notice notice-tip">AIロボット視界のターゲット検出エンジンを読み込んでいます...</p>';
+
+    try {
+      const previousEntry = state.mediaByCutId[cut.id];
+      const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
+
+      if (previousEntry?.element) {
+        resourcePool.releaseElement?.(previousEntry.element);
+      }
+      if (previousEntry?.objectUrl) {
+        resourcePool.revokeUrl(previousEntry.objectUrl);
+      }
+
+      if (inspected.mediaType === 'video') {
+        const videoDur = Math.max(0.5, inspected.durationSec || 6);
+        cut.durationSec = Math.max(
+          Math.min(2.0, videoDur),
+          Number(Math.min(15.0, videoDur).toFixed(1))
+        );
+      } else {
+        cut.durationSec = 6.0;
+      }
+
+      inspected.scouterTheme = 'ai-emerald';
+      inspected.scouterPreset = 'auto';
+      inspected.scouterCustomPower = 530000;
+      inspected.scouterCustomLabel = 'TARGET';
+      inspected.trimStartSec = 0;
+      state.mediaByCutId[cut.id] = inspected;
+
+      renderScouterControls(controlsBox, cut, inspected, scouterMeta, onStateChange);
+      onStateChange();
+
+      await ensureBizarreSegmenterReady();
+      const crop = computeCoverCropRect(inspected.width, inspected.height, 360, 640, 'none', 0);
+      const boxes = await segmentFrameToSubjectBoxes(inspected.element, crop, 360, 640);
+      inspected.subjectBoxes = boxes;
+
+      renderPrecheckMessages(feedbackBox, inspected.warnings);
+      if (boxes.length > 0) {
+        statusBadge.textContent = `LOCKED (${boxes.length})`;
+        statusBadge.className = 'status-indicator is-ready';
+        feedbackBox.insertAdjacentHTML(
+          'afterbegin',
+          `<p class="notice notice-ok">${boxes.length}体のターゲット（人物・動物）をロックオンしました！戦闘力プリセットやHUDカラーも変更できます。</p>`
+        );
+      } else {
+        statusBadge.textContent = 'HUD READY';
+        statusBadge.className = 'status-indicator is-ready';
+        feedbackBox.insertAdjacentHTML(
+          'afterbegin',
+          '<p class="notice notice-tip">ロボット視界HUDの準備完了！人物や犬・猫などが映るフレームから自動でロックオンします。</p>'
+        );
+      }
+
+      labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
+      onStateChange();
+    } catch (error) {
+      statusBadge.textContent = 'ERROR';
+      statusBadge.className = 'status-indicator is-error';
+      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
+    }
+  });
+}
+
+function renderScouterControls(controlsBox, cut, mediaEntry, scouterMeta, onStateChange) {
+  controlsBox.classList.remove('hidden');
+  const isVideo = mediaEntry.mediaType === 'video';
+  const totalMediaDur = isVideo ? Math.max(0.5, mediaEntry.durationSec || 6) : 15.0;
+  const maxDur = isVideo
+    ? Math.max(0.5, Math.floor(Math.min(60.0, totalMediaDur) * 10) / 10)
+    : 15.0;
+  const minDur = Math.min(2.0, maxDur);
+  const initialMaxStart = isVideo
+    ? Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10)
+    : 0;
+
+  const themeOptions = Object.entries(SCOUTER_THEMES)
+    .map(([key, info]) => `<option value="${escapeHtml(key)}">${escapeHtml(info.label)}</option>`)
+    .join('');
+  const presetOptions = Object.entries(SCOUTER_POWER_PRESETS)
+    .map(([key, info]) => `<option value="${escapeHtml(key)}">${escapeHtml(info.label)}</option>`)
+    .join('');
+
+  controlsBox.innerHTML = `
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-track" aria-hidden="true">
+              <div class="trim-window" id="scouter-trim-window"></div>
+            </div>
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="scouter-duration-label">使う長さ：${cut.durationSec.toFixed(1)}秒</span>
+      </div>
+      <input type="range" id="scouter-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.1" value="${cut.durationSec}" aria-label="動画の長さ調整" />
+    </div>
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-header">
+              <span class="trim-label" id="scouter-start-label">開始位置：0.0秒 〜 ${cut.durationSec.toFixed(1)}秒</span>
+            </div>
+            <input type="range" id="scouter-start-slider" class="trim-slider" min="0" max="${initialMaxStart.toFixed(1)}" step="0.1" value="0" aria-label="切り出し開始位置" />
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <label class="trim-label" for="scouter-theme-select">AIロボ視界・バイザーカラー</label>
+      <select id="scouter-theme-select" class="quality-select">
+        ${themeOptions}
+      </select>
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="scouter-preset-select">戦闘力データ（自動計測 / 有名キャラ数値プリセット）</label>
+      <select id="scouter-preset-select" class="quality-select">
+        ${presetOptions}
+      </select>
+    </div>
+    <div id="scouter-custom-wrap" class="beat-control-row hidden">
+      <label class="trim-label" for="scouter-custom-power">カスタム戦闘力（数値）＆ 識別ラベル</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input type="number" id="scouter-custom-power" class="quality-select" min="1" max="999999999" value="530000" aria-label="カスタム戦闘力" />
+        <input type="text" id="scouter-custom-label" class="quality-select" maxlength="18" value="TARGET" placeholder="例: EMPEROR" aria-label="識別ラベル" />
+      </div>
+    </div>
+  `;
+
+  const trimWindow = controlsBox.querySelector('#scouter-trim-window');
+  const durationSlider = controlsBox.querySelector('#scouter-duration-slider');
+  const durationLabel = controlsBox.querySelector('#scouter-duration-label');
+  const startSlider = controlsBox.querySelector('#scouter-start-slider');
+  const startLabel = controlsBox.querySelector('#scouter-start-label');
+  const themeSelect = controlsBox.querySelector('#scouter-theme-select');
+  const presetSelect = controlsBox.querySelector('#scouter-preset-select');
+  const customWrap = controlsBox.querySelector('#scouter-custom-wrap');
+  const customPowerInput = controlsBox.querySelector('#scouter-custom-power');
+  const customLabelInput = controlsBox.querySelector('#scouter-custom-label');
+
+  function syncLabels() {
+    durationLabel.textContent = isVideo
+      ? `使う長さ：${cut.durationSec.toFixed(1)}秒（最大 ${maxDur.toFixed(1)}秒 / 元動画 ${totalMediaDur.toFixed(1)}秒）`
+      : `再生時間：${cut.durationSec.toFixed(1)}秒（写真）`;
+
+    if (isVideo && startSlider && startLabel && trimWindow) {
+      const start = mediaEntry.trimStartSec || 0;
+      const end = Math.min(totalMediaDur, start + cut.durationSec);
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.disabled = maxStart <= 0.05;
+      startLabel.textContent =
+        maxStart <= 0.05
+          ? `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒（全体を使用中）`
+          : `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+
+      const leftPct = Math.min(100, (start / totalMediaDur) * 100);
+      const widthPct = Math.min(100 - leftPct, (cut.durationSec / totalMediaDur) * 100);
+      trimWindow.style.left = `${leftPct}%`;
+      trimWindow.style.width = `${widthPct}%`;
+    }
+
+    customWrap.classList.toggle('hidden', mediaEntry.scouterPreset !== 'custom');
+    scouterMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // AI SCOUTER`;
+  }
+
+  durationSlider.addEventListener('input', () => {
+    cut.durationSec = Number(durationSlider.value);
+    if (isVideo && startSlider) {
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.max = maxStart.toFixed(1);
+      if ((mediaEntry.trimStartSec || 0) > maxStart) {
+        mediaEntry.trimStartSec = maxStart;
+        startSlider.value = maxStart.toFixed(1);
+      }
+    }
+    syncLabels();
+    onStateChange();
+  });
+
+  if (startSlider) {
+    startSlider.addEventListener('input', () => {
+      mediaEntry.trimStartSec = Number(startSlider.value);
+      syncLabels();
+      onStateChange();
+    });
+  }
+
+  themeSelect.addEventListener('change', () => {
+    mediaEntry.scouterTheme = themeSelect.value;
+    onStateChange();
+  });
+
+  presetSelect.addEventListener('change', () => {
+    mediaEntry.scouterPreset = presetSelect.value;
+    syncLabels();
+    onStateChange();
+  });
+
+  customPowerInput.addEventListener('input', () => {
+    mediaEntry.scouterCustomPower = Number(customPowerInput.value) || 530000;
+    onStateChange();
+  });
+
+  customLabelInput.addEventListener('input', () => {
+    mediaEntry.scouterCustomLabel = customLabelInput.value;
     onStateChange();
   });
 
