@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="ビートズーム＆上半身寄り：自動クロップ切り替えガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">BEAT ZOOM // AUTO</text>
+  <!-- Upper body crop focus box -->
+  <rect x="34" y="54" width="112" height="148" rx="6" fill="#ff4d1c" fill-opacity="0.08" stroke="#ff4d1c" stroke-width="1.5" stroke-dasharray="5 3" />
+  <circle cx="90" cy="100" r="18" fill="#f4f1ea" fill-opacity="0.14" stroke="#f4f1ea" stroke-width="1.5" />
+  <path d="M54 150 L90 128 L126 150 M90 124 V188" stroke="#f4f1ea" stroke-width="2" stroke-linecap="round" fill="none" />
+  <g stroke="#d4af7a" stroke-width="1.6" fill="none" stroke-linecap="round">
+    <path d="M26 78 L42 94 M34 94 H42 V86" />
+    <path d="M154 78 L138 94 M146 94 H138 V86" />
+  </g>
+  <text x="90" y="236" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#ff4d1c">120 BPM ZOOM PUNCH</text>
+</svg>

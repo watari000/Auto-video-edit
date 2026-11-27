@@ -76,5 +76,18 @@
     "filterTag": "RAPID FLASH",
     "templatePath": "./sample-rapid-recap-06/template.json",
     "coverAsset": "./sample-rapid-recap-06/guide-assets/cut-intro.svg"
+  },
+  {
+    "id": "sample-dance-remix-07",
+    "title": "Dance MV Auto-Remix・1本動画で自動MV加工",
+    "category": "DANCE / 1-CLIP MV",
+    "summary": "ダンス動画を1本選ぶだけで、120BPMビートズーム・上半身寄り切替・線画フリーズヒットを自動でかける6.0秒のMV風リミックスです。",
+    "durationSec": 6.0,
+    "cutCount": 5,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 118–132",
+    "filterTag": "BEAT REMIX",
+    "templatePath": "./sample-dance-remix-07/template.json",
+    "coverAsset": "./sample-dance-remix-07/guide-assets/cut-beat.svg"
   }
 ]

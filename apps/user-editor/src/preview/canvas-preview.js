@@ -111,9 +111,9 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
     const video = mediaEntry.element;
 
     if (activeVideoId !== cut.id) {
-      pauseAllVideos(cut.id);
+      pauseAllVideos(video);
       activeVideoId = cut.id;
-      if (Math.abs(video.currentTime - targetTime) > 0.12) {
+      if (Math.abs(video.currentTime - targetTime) > 0.25) {
         video.currentTime = targetTime;
       }
       if (isPlaying && video.paused) {
@@ -131,9 +131,9 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
     }
   }
 
-  function pauseAllVideos(exceptCutId = null) {
-    for (const [cutId, entry] of Object.entries(state.mediaByCutId)) {
-      if (cutId !== exceptCutId && entry?.mediaType === 'video' && !entry.element.paused) {
+  function pauseAllVideos(exceptElement = null) {
+    for (const entry of Object.values(state.mediaByCutId)) {
+      if (entry?.mediaType === 'video' && entry.element !== exceptElement && !entry.element.paused) {
         entry.element.pause();
       }
     }

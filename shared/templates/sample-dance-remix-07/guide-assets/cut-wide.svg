@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="全身ダンス構図：三脚固定や広い画角で全身を収めるガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">DANCE WIDE // 1.2S</text>
+  <!-- Dancer full-body silhouette -->
+  <circle cx="90" cy="84" r="14" fill="#d4af7a" fill-opacity="0.22" stroke="#d4af7a" stroke-width="1.4" />
+  <path d="M90 100 V174 M56 126 L90 112 L128 134 M90 174 L68 242 M90 174 L116 238" stroke="#f4f1ea" stroke-width="2" stroke-linecap="round" fill="none" />
+  <line x1="36" y1="250" x2="144" y2="250" stroke="#f4f1ea" stroke-opacity="0.3" />
+  <text x="90" y="274" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#d4af7a">FULL BODY FRAME</text>
+</svg>

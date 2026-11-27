@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-dance-remix-07",
+  "title": "Dance MV Auto-Remix・1本動画で自動MV加工",
+  "description": "三脚固定などで撮ったダンス動画を1本選ぶだけで、ビート連動ズームパンチ・疑似マルチカメラ（上半身寄り切替）・キメの線画フリーズヒットを自動でかける6.0秒MVリミックスです。",
+  "status": "published",
+  "inputMode": "single-clip",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "ダンスビート・ヒップホップ / K-POP / エレクトロ（120 BPM 前後）",
+    "bpmRange": {
+      "min": 118,
+      "max": 132
+    },
+    "suggestedSearchKeywords": [
+      "dance challenge beat 120bpm",
+      "kpop dance remix",
+      "hiphop choreography track"
+    ],
+    "note": "STEP 2で踊っている動画を1本選び、使いたい6秒間の開始位置を合わせるだけで、5つのカメラ演出が途切れず連続再生されます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "セクション1：全身導入フラッシュ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.2,
+      "shootingGuide": {
+        "shotType": "全身が収まる縦構図（三脚固定でもOK）",
+        "cameraMove": "フラッシュ導入 → ゆっくりズーム",
+        "tips": "頭から足元まで映った1本のダンス動画を選ぶと、以降の寄り・引きの自動切り替えが綺麗に決まります。",
+        "silhouetteAsset": "guide-assets/cut-wide.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "flash",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "READY TO *DANCE*",
+        "placeholder": "例：READY TO *DANCE* / 曲名",
+        "maxLength": 30,
+        "position": "top",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#ff4d1c"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "セクション2：ビートズームパンチ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.4,
+      "shootingGuide": {
+        "shotType": "自動ビート連動ズーム",
+        "cameraMove": "120 BPM に合わせて画面が鼓動するズームパンチ",
+        "tips": "固定カメラのままでも、ビートの拍に合わせて自動で寄って戻る迫力ある動きが付きます。",
+        "silhouetteAsset": "guide-assets/cut-beat.svg"
+      },
+      "effect": {
+        "motion": "beat-zoom",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "セクション3：疑似マルチカメラ（上半身寄り）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.2,
+      "shootingGuide": {
+        "shotType": "上半身クローズアップ（自動クロップ）",
+        "cameraMove": "別カメラに切り替えたような1.34倍寄りアングル",
+        "tips": "同じ動画から自動で上半身付近へ寄るため、2台のカメラで撮ったような抑揚が出ます。",
+        "silhouetteAsset": "guide-assets/cut-beat.svg"
+      },
+      "effect": {
+        "motion": "closeup-upper",
+        "transitionIn": "cut",
+        "filter": "cool"
+      }
+    },
+    {
+      "id": "cut-4",
+      "order": 4,
+      "label": "セクション4：キメの線画フリーズヒット",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.0,
+      "shootingGuide": {
+        "shotType": "一瞬のチョーク線画フリーズ → フラッシュ復帰",
+        "cameraMove": "0.32秒線画ストップ → ビートズーム復帰",
+        "tips": "サビやキメの瞬間に線画のフリーズ演出を挟み、フラッシュとともに再び動き出します。",
+        "silhouetteAsset": "guide-assets/cut-freeze.svg"
+      },
+      "effect": {
+        "motion": "beat-zoom",
+        "transitionIn": "freeze-sketch",
+        "sketchStyle": "chalk-dark",
+        "filter": "vivid"
+      }
+    },
+    {
+      "id": "cut-5",
+      "order": 5,
+      "label": "セクション5：ワイド引きフィナーレ",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.2,
+      "shootingGuide": {
+        "shotType": "全身引き構図",
+        "cameraMove": "ゆっくり引いてタイトルで締める",
+        "tips": "最後は全身に戻るため、余韻を残しつつSNS投稿へ繋げられます。",
+        "silhouetteAsset": "guide-assets/cut-wide.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "flash",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "FULL *CHOREO* OUT",
+        "placeholder": "例：FULL *CHOREO* OUT / フォロー促進",
+        "maxLength": 30,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "slide-beat",
+        "accentColor": "#d4af7a"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:42:00+09:00",
+    "updatedAt": "2026-11-27T17:42:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "1本ダンス動画用 自動MVリミックス（ビートズーム＋疑似マルチカメラ＋線画フリーズ）"
+  }
+}
