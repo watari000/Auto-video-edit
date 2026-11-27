@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-kinetic-caption-05",
+  "title": "Kinetic Caption・動く字幕4カット",
+  "description": "テンポに合わせて言葉が1単語ずつポップアップし、*強調ワード* だけ色とサイズが大きく変化する2026年トレンドのショート動画用4カット（合計6.4秒）テンプレートです。",
+  "status": "published",
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "トレンドポップ・リズミカルなビート・テンポ重視エレクトロ",
+    "bpmRange": {
+      "min": 116,
+      "max": 132
+    },
+    "suggestedSearchKeywords": [
+      "kinetic typography beat",
+      "trendy reel upbeat",
+      "fast edit hiphop pop"
+    ],
+    "note": "スペースで区切った単語がテンポよく1語ずつ出現します。STEP 3のテロップ編集で *単語* と囲むと強調色（ハイライト）になります。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "カット1：フック（中央ポップアップ）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.6,
+      "shootingGuide": {
+        "shotType": "被写体をやや引き気味に（中央に文字空間を確保）",
+        "cameraMove": "ゆっくり寄る / 動きの少ない背景が最適",
+        "tips": "画面の真ん中に大きな動きのある字幕が出るため、背景が少しシンプルだと文字がくっきり読めます。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "zoom-in",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "今日の *主役* は これ",
+        "placeholder": "例：今日の *主役* は これ",
+        "maxLength": 36,
+        "position": "center",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#ff4d1c"
+      }
+    },
+    {
+      "id": "cut-2",
+      "order": 2,
+      "label": "カット2：テンポ展開（スライドビート）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.6,
+      "shootingGuide": {
+        "shotType": "ミディアム寄り（左右の動きあり）",
+        "cameraMove": "左から右へテンポよく振る",
+        "tips": "横方向のスライドと文字のスライドインが揃うと、プロが編集したような一体感が出ます。",
+        "silhouetteAsset": "guide-assets/cut-02.svg"
+      },
+      "effect": {
+        "motion": "pan-right",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "たった *3秒* で 変わる",
+        "placeholder": "例：たった *3秒* で 変わる",
+        "maxLength": 36,
+        "position": "center",
+        "style": "kinetic",
+        "animation": "slide-beat",
+        "accentColor": "#f59e0b"
+      }
+    },
+    {
+      "id": "cut-3",
+      "order": 3,
+      "label": "カット3：ディテール（下部ウェーブ）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.6,
+      "shootingGuide": {
+        "shotType": "クローズアップ（上〜中央に主役を配置）",
+        "cameraMove": "右から左へ軽くスライド",
+        "tips": "文字が画面下側に並ぶので、撮りたいモノや表情は少し上半分に収めるのがコツです。",
+        "silhouetteAsset": "guide-assets/cut-03.svg"
+      },
+      "effect": {
+        "motion": "pan-left",
+        "transitionIn": "fade",
+        "filter": "cool"
+      },
+      "textOverlay": {
+        "defaultText": "音の *テンポ* に 乗せて",
+        "placeholder": "例：音の *テンポ* に 乗せて",
+        "maxLength": 36,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "emphasis-wave",
+        "accentColor": "#34d399"
+      }
+    },
+    {
+      "id": "cut-4",
+      "order": 4,
+      "label": "カット4：CTA締め（強調ピルポップ）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 1.6,
+      "shootingGuide": {
+        "shotType": "ワイド引き（全体のまとめ）",
+        "cameraMove": "ゆっくり引いて余韻を作る",
+        "tips": "最後の「保存してね」などの締め言葉に合わせて、背景を少し引くと視線が文字に集中します。",
+        "silhouetteAsset": "guide-assets/cut-04.svg"
+      },
+      "effect": {
+        "motion": "zoom-out",
+        "transitionIn": "fade",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "今すぐ *保存* してね",
+        "placeholder": "例：今すぐ *保存* してね",
+        "maxLength": 36,
+        "position": "center",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#ff4d1c"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:15:00+09:00",
+    "updatedAt": "2026-11-27T17:15:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "Kinetic Caption Choreography（動く文字演出）テンプレート"
+  }
+}

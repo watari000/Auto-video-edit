@@ -50,5 +50,18 @@
     "filterTag": "SKETCH REVEAL",
     "templatePath": "./sample-sketch-art-04/template.json",
     "coverAsset": "./sample-sketch-art-04/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-kinetic-caption-05",
+    "title": "Kinetic Caption・動く字幕4カット",
+    "category": "TYPO / KINETIC",
+    "summary": "テンポに合わせて1単語ずつ文字がポップアップし、*強調ワード* だけ色とサイズが変わるトレンドのキネティック字幕演出（6.4秒）です。",
+    "durationSec": 6.4,
+    "cutCount": 4,
+    "aspectRatio": "9:16",
+    "bpmLabel": "BPM 116–132",
+    "filterTag": "KINETIC TYPE",
+    "templatePath": "./sample-kinetic-caption-05/template.json",
+    "coverAsset": "./sample-kinetic-caption-05/guide-assets/cut-01.svg"
   }
 ]

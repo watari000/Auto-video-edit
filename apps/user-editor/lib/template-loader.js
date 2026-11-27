@@ -6,7 +6,8 @@ const ALLOWED_TRANSITIONS = new Set(['cut', 'fade', 'sketch-to-reality']);
 const ALLOWED_SKETCH_STYLES = new Set(['ink-paper', 'chalk-dark', 'pencil-warm']);
 const ALLOWED_FILTERS = new Set(['none', 'warm', 'cool', 'vintage', 'vivid']);
 const ALLOWED_TEXT_POSITIONS = new Set(['top', 'center', 'bottom']);
-const ALLOWED_TEXT_STYLES = new Set(['clean', 'pill', 'shadow']);
+const ALLOWED_TEXT_STYLES = new Set(['clean', 'pill', 'shadow', 'kinetic']);
+const ALLOWED_TEXT_ANIMATIONS = new Set(['none', 'word-pop', 'slide-beat', 'emphasis-wave']);
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -155,7 +156,10 @@ export function validateTemplateData(data) {
           !Number.isInteger(to.maxLength) ||
           to.maxLength < 1 ||
           !ALLOWED_TEXT_POSITIONS.has(to.position) ||
-          !ALLOWED_TEXT_STYLES.has(to.style)
+          !ALLOWED_TEXT_STYLES.has(to.style) ||
+          (to.animation !== undefined && !ALLOWED_TEXT_ANIMATIONS.has(to.animation)) ||
+          (to.accentColor !== undefined &&
+            (typeof to.accentColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(to.accentColor)))
         ) {
           errors.push(`${prefix}.textOverlay の形式が不正です。`);
         }

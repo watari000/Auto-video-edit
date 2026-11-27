@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="カット2：横スライドに連動して文字が飛び出す構図ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">KINETIC 02 // 1.6S</text>
+  <!-- Slide motion arrows -->
+  <path d="M40 96 H140 M130 88 L140 96 L130 104" stroke="#f59e0b" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="48" y="156" font-size="11" font-family="sans-serif" fill="#f4f1ea">たった</text>
+  <text x="98" y="158" font-size="18" font-family="sans-serif" font-weight="bold" fill="#f59e0b">3秒</text>
+  <text x="136" y="156" font-size="11" font-family="sans-serif" fill="#f4f1ea">で</text>
+  <text x="90" y="188" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#a19d95">SLIDE BEAT SYNC</text>
+</svg>

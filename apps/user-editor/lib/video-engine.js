@@ -180,8 +180,223 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawTextOverlay(ctx, textOverlay, textOverride, width, height) {
+/**
+ * キネティック字幕のテキストを空白で分割し、*強調語* を解析する（純粋関数）。
+ */
+export function parseKineticTokens(rawText) {
+  const trimmed = String(rawText || '').trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  let hasExplicitEmphasis = false;
+
+  const parsed = parts.map((part) => {
+    const match = /^\*(.+)\*$/.exec(part);
+    if (match && match[1].trim()) {
+      hasExplicitEmphasis = true;
+      return { text: match[1].trim(), emphasized: true };
+    }
+    return { text: part, emphasized: false };
+  });
+
+  if (!hasExplicitEmphasis && parsed.length > 0) {
+    parsed[parsed.length - 1].emphasized = true;
+  }
+
+  return parsed;
+}
+
+/**
+ * キネティック字幕の各単語が、現在時刻（localSec）でどの出現状態にあるか計算する（純粋関数）。
+ */
+export function computeKineticTokenState(index, totalTokens, localSec, durationSec) {
+  const count = Math.max(1, Number(totalTokens) || 1);
+  const duration = Math.max(0.001, Number(durationSec) || 1);
+  const t = Math.max(0, Number(localSec) || 0);
+  const revealWindow = duration * 0.72;
+  const step = revealWindow / count;
+  const startAt = index * step;
+  const nextStartAt = (index + 1) * step;
+  const animDur = Math.min(0.24, Math.max(0.08, step * 0.9));
+
+  if (t < startAt) {
+    return {
+      visible: false,
+      opacity: 0,
+      scale: 0.6,
+      offsetY: 18,
+      isCurrent: false,
+    };
+  }
+
+  const elapsed = t - startAt;
+  if (elapsed < animDur) {
+    const p = clamp(elapsed / animDur, 0, 1);
+    const scale =
+      p < 0.65
+        ? 0.6 + (1.14 - 0.6) * (p / 0.65)
+        : 1.14 - 0.14 * ((p - 0.65) / 0.35);
+    return {
+      visible: true,
+      opacity: clamp(p * 1.4, 0, 1),
+      scale,
+      offsetY: 18 * Math.pow(1 - p, 2),
+      isCurrent: t < nextStartAt,
+    };
+  }
+
+  return {
+    visible: true,
+    opacity: 1,
+    scale: 1,
+    offsetY: 0,
+    isCurrent: t < nextStartAt,
+  };
+}
+
+function drawKineticTextOverlay(ctx, textOverlay, textOverride, width, height, localSec, durationSec) {
+  const rawText = (textOverride !== undefined ? textOverride : textOverlay.defaultText || '').trim();
+  const tokens = parseKineticTokens(rawText);
+  if (tokens.length === 0) {
+    return;
+  }
+
+  const animation = textOverlay.animation || 'word-pop';
+  const accentColor = textOverlay.accentColor || '#ff4d1c';
+  const baseFontSize = Math.round(width * 0.056);
+  const emphFontSize = Math.round(baseFontSize * 1.22);
+  const spaceGap = Math.round(baseFontSize * 0.34);
+  const maxLineWidth = width * 0.86;
+  const fontFamily = '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const measured = tokens.map((token, index) => {
+    const fontSize = token.emphasized ? emphFontSize : baseFontSize;
+    const weight = token.emphasized ? 900 : 700;
+    const font = `${weight} ${fontSize}px ${fontFamily}`;
+    ctx.font = font;
+    const textWidth = ctx.measureText(token.text).width;
+    const padX = token.emphasized && animation === 'word-pop' ? Math.round(fontSize * 0.42) : 0;
+    const padY = token.emphasized && animation === 'word-pop' ? Math.round(fontSize * 0.22) : 0;
+    return {
+      ...token,
+      index,
+      fontSize,
+      font,
+      textWidth,
+      padX,
+      padY,
+      boxWidth: textWidth + padX * 2,
+      boxHeight: fontSize + padY * 2,
+    };
+  });
+
+  const lines = [];
+  let currentLine = { items: [], width: 0 };
+
+  for (const item of measured) {
+    const nextWidth =
+      currentLine.items.length === 0 ? item.boxWidth : currentLine.width + spaceGap + item.boxWidth;
+    if (currentLine.items.length > 0 && nextWidth > maxLineWidth) {
+      lines.push(currentLine);
+      currentLine = { items: [item], width: item.boxWidth };
+    } else {
+      currentLine.items.push(item);
+      currentLine.width = nextWidth;
+    }
+  }
+  if (currentLine.items.length > 0) {
+    lines.push(currentLine);
+  }
+
+  let anchorY = height * 0.8;
+  if (textOverlay.position === 'top') {
+    anchorY = height * 0.18;
+  } else if (textOverlay.position === 'center') {
+    anchorY = height * 0.5;
+  }
+
+  const lineHeight = Math.round(emphFontSize * 1.42);
+  const startY = anchorY - ((lines.length - 1) * lineHeight) / 2;
+
+  lines.forEach((line, lineIdx) => {
+    const lineY = startY + lineIdx * lineHeight;
+    let cursorX = width / 2 - line.width / 2;
+
+    line.items.forEach((item) => {
+      const centerX = cursorX + item.boxWidth / 2;
+      cursorX += item.boxWidth + spaceGap;
+
+      const state =
+        animation === 'none'
+          ? { visible: true, opacity: 1, scale: 1, offsetY: 0, isCurrent: false }
+          : computeKineticTokenState(item.index, tokens.length, localSec, durationSec);
+
+      if (!state.visible) {
+        return;
+      }
+
+      const slideOffsetX = animation === 'slide-beat' ? -state.offsetY * 0.9 : 0;
+      const waveOffsetY =
+        animation === 'emphasis-wave' && item.emphasized
+          ? Math.sin((localSec * 6 + item.index) * 1.4) * Math.round(baseFontSize * 0.12)
+          : 0;
+
+      ctx.save();
+      ctx.translate(centerX + slideOffsetX, lineY + state.offsetY + waveOffsetY);
+      ctx.scale(state.scale, state.scale);
+      ctx.globalAlpha = state.opacity;
+      ctx.font = item.font;
+
+      if (item.emphasized && animation === 'word-pop') {
+        ctx.fillStyle = accentColor;
+        drawRoundedRect(
+          ctx,
+          -item.boxWidth / 2,
+          -item.boxHeight / 2,
+          item.boxWidth,
+          item.boxHeight,
+          Math.round(item.boxHeight * 0.28)
+        );
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(item.text, 0, 0);
+      } else if (item.emphasized) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+        ctx.shadowBlur = Math.round(item.fontSize * 0.32);
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.lineWidth = Math.max(3, Math.round(item.fontSize * 0.14));
+        ctx.strokeText(item.text, 0, 0);
+        ctx.fillStyle = accentColor;
+        ctx.fillText(item.text, 0, 0);
+      } else {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+        ctx.shadowBlur = Math.round(item.fontSize * 0.28);
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
+        ctx.lineWidth = Math.max(2, Math.round(item.fontSize * 0.12));
+        ctx.strokeText(item.text, 0, 0);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(item.text, 0, 0);
+      }
+
+      ctx.restore();
+    });
+  });
+
+  ctx.restore();
+}
+
+function drawTextOverlay(ctx, textOverlay, textOverride, width, height, localSec = 0, durationSec = 1) {
   if (!textOverlay) {
+    return;
+  }
+  if (textOverlay.style === 'kinetic') {
+    drawKineticTextOverlay(ctx, textOverlay, textOverride, width, height, localSec, durationSec);
     return;
   }
   const text = (textOverride !== undefined ? textOverride : textOverlay.defaultText || '').trim();
@@ -493,7 +708,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
     );
 
     ctx.restore();
-    drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height);
+    drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height, localSec, duration);
     return;
   }
 
@@ -540,7 +755,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   }
 
   ctx.restore();
-  drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height);
+  drawTextOverlay(ctx, cut.textOverlay, textOverride, width, height, localSec, duration);
 }
 
 /**

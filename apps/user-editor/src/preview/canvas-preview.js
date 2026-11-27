@@ -67,6 +67,7 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
     }
     state.textByCutId[cut.id] = cut.textOverlay.defaultText || '';
 
+    const isKinetic = cut.textOverlay.style === 'kinetic';
     const field = document.createElement('label');
     field.className = 'caption-field';
     field.innerHTML = `
@@ -80,6 +81,7 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
         value="${escapeHtml(state.textByCutId[cut.id])}"
         placeholder="${escapeHtml(cut.textOverlay.placeholder)}"
       />
+      ${isKinetic ? '<span class="caption-kinetic-note">スペース区切りで1語ずつ出現・*単語* で色とサイズを強調</span>' : ''}
     `;
     const input = field.querySelector('input');
     input.addEventListener('input', () => {

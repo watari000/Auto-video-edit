@@ -1059,6 +1059,12 @@
   border-color: var(--accent-champagne);
 }
 
+.caption-kinetic-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-champagne);
+}
+
 /* === Buttons === */
 .btn {
   border: 1px solid transparent;

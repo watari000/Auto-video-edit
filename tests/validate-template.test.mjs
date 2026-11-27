@@ -11,10 +11,12 @@ import {
   MAX_OUTPUT_WIDTH,
   buildTimelineSegments,
   computeCoverCropRect,
+  computeKineticTokenState,
   computeSafeRenderDimensions,
   computeSketchRevealState,
   generateSketchImageData,
   getCanvasFilterString,
+  parseKineticTokens,
   resolveCutAtTime,
 } from '../apps/user-editor/lib/video-engine.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
@@ -49,12 +51,12 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
-test('shared/templates/index.json lists >= 4 valid templates with existing assets and unique IDs', async () => {
+test('shared/templates/index.json lists >= 5 valid templates with existing assets and unique IDs', async () => {
   const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 4);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 5);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -84,6 +86,7 @@ test('shared/templates/index.json lists >= 4 valid templates with existing asset
   }
 
   assert.equal(seenIds.has('sample-sketch-art-04'), true);
+  assert.equal(seenIds.has('sample-kinetic-caption-05'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -244,4 +247,36 @@ test('generateSketchImageData renders paper on flat regions and ink on sharp edg
   assert.equal(edgeSketch[centerIdx], 30);
   assert.equal(edgeSketch[centerIdx + 1], 27);
   assert.equal(edgeSketch[centerIdx + 2], 24);
+});
+
+test('parseKineticTokens extracts *keyword* emphasis and falls back to last word', () => {
+  const explicit = parseKineticTokens('今日の *主役* は これ');
+  assert.deepEqual(explicit, [
+    { text: '今日の', emphasized: false },
+    { text: '主役', emphasized: true },
+    { text: 'は', emphasized: false },
+    { text: 'これ', emphasized: false },
+  ]);
+
+  const fallback = parseKineticTokens('今すぐ 保存 してね');
+  assert.deepEqual(fallback, [
+    { text: '今すぐ', emphasized: false },
+    { text: '保存', emphasized: false },
+    { text: 'してね', emphasized: true },
+  ]);
+});
+
+test('computeKineticTokenState staggers word appearance and pop-in animation', () => {
+  const hidden = computeKineticTokenState(2, 4, 0.1, 1.6);
+  assert.equal(hidden.visible, false);
+  assert.equal(hidden.opacity, 0);
+
+  const popping = computeKineticTokenState(1, 4, 0.35, 1.6);
+  assert.equal(popping.visible, true);
+  assert.ok(popping.scale > 0.6);
+
+  const settled = computeKineticTokenState(0, 4, 1.2, 1.6);
+  assert.equal(settled.visible, true);
+  assert.equal(settled.opacity, 1);
+  assert.equal(settled.scale, 1);
 });
