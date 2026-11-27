@@ -1,8 +1,10 @@
 import {
   buildTimelineSegments,
+  computeCoverCropRect,
   drawCutFrame,
   resolveCutAtTime,
 } from '../../lib/video-engine.js';
+import { segmentFrameToSubjectMask } from '../../lib/bizarre-shift-engine.js';
 
 const PREVIEW_WIDTH = 360;
 const PREVIEW_HEIGHT = 640;
@@ -11,6 +13,8 @@ const PREVIEW_HEIGHT = 640;
  * STEP 03〜モニター：9:16 シネマモニターでの軽量プレビューと、テロップ文言調整コンソールを提供する。
  */
 export function initPreviewSection(previewContainer, template, state, captionsContainer) {
+  let previewAudioEnabled = Boolean(template.allowSourceAudio && template.defaultIncludeAudio !== false);
+
   previewContainer.innerHTML = `
     <div class="monitor-shell">
       <div class="monitor-hud-top">
@@ -23,7 +27,7 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
       <div class="monitor-controls${template.allowSourceAudio ? ' has-audio' : ''}">
         <button type="button" id="preview-play-btn" class="btn btn-primary">再生する</button>
         <button type="button" id="preview-restart-btn" class="btn btn-secondary">先頭へ</button>
-        ${template.allowSourceAudio ? '<button type="button" id="preview-audio-btn" class="btn btn-secondary" aria-pressed="true">音声: ON</button>' : ''}
+        ${template.allowSourceAudio ? `<button type="button" id="preview-audio-btn" class="btn btn-secondary" aria-pressed="${previewAudioEnabled}">音声: ${previewAudioEnabled ? 'ON' : 'OFF'}</button>` : ''}
       </div>
       <div class="timeline-scrub-row">
         <input type="range" id="preview-scrub" class="scrub-range" min="0" max="5" step="0.05" value="0" aria-label="プレビュー再生位置" />
@@ -62,7 +66,6 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
 
   let { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
   scrub.max = String(totalDurationSec);
-  let previewAudioEnabled = Boolean(template.allowSourceAudio);
 
   if (audioToggleBtn) {
     audioToggleBtn.addEventListener('click', () => {
@@ -200,6 +203,58 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
     const { segment, localSec } = resolved;
     const mediaEntry = state.mediaByCutId[segment.cut.id];
     syncVideoForPreview(segment.cut, mediaEntry, localSec);
+
+    if (
+      segment.cut.effect?.motion === 'bizarre-shift' &&
+      mediaEntry?.element &&
+      mediaEntry.width > 0 &&
+      !mediaEntry._segmentInFlight
+    ) {
+      const triggerSec = mediaEntry.bizarreTriggerSec ?? 2.0;
+      const shouldUpdateMask =
+        (mediaEntry.mediaType === 'video' &&
+          localSec >= triggerSec - 0.25 &&
+          performance.now() - (mediaEntry._lastSegMs || 0) >= 140) ||
+        !mediaEntry.subjectMask;
+
+      if (shouldUpdateMask) {
+        mediaEntry._segmentInFlight = true;
+        const crop = computeCoverCropRect(
+          mediaEntry.width,
+          mediaEntry.height,
+          PREVIEW_WIDTH,
+          PREVIEW_HEIGHT,
+          'none',
+          0
+        );
+        segmentFrameToSubjectMask(mediaEntry.element, crop, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+          .then((mask) => {
+            if (mask) {
+              mediaEntry.subjectMask = mask;
+              mediaEntry._lastSegMs = performance.now();
+              if (!isPlaying) {
+                const latest = resolveCutAtTime(segments, currentSec);
+                if (latest && latest.segment.cut.id === segment.cut.id) {
+                  drawCutFrame(
+                    ctx,
+                    latest.segment.cut,
+                    mediaEntry,
+                    latest.localSec,
+                    PREVIEW_WIDTH,
+                    PREVIEW_HEIGHT,
+                    state.textByCutId[latest.segment.cut.id]
+                  );
+                }
+              }
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            mediaEntry._segmentInFlight = false;
+          });
+      }
+    }
+
     drawCutFrame(
       ctx,
       segment.cut,

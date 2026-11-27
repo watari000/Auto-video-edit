@@ -1,5 +1,11 @@
 import { inspectMediaFile } from '../precheck/media-precheck.js';
 import { analyzeVideoFileBeats } from '../../lib/audio-beat-analyzer.js';
+import {
+  BIZARRE_PALETTES,
+  ensureBizarreSegmenterReady,
+  segmentFrameToSubjectMask,
+} from '../../lib/bizarre-shift-engine.js';
+import { computeCoverCropRect } from '../../lib/video-engine.js';
 
 /**
  * STEP 02：複数素材の一括配置、カットごとの素材選択、プリチェック案内、スライドトリミングを提供する。
@@ -9,6 +15,11 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
 
   if (template.inputMode === 'beat-sync-video') {
     renderBeatSyncTrimmer(container, template, state, resourcePool, onStateChange);
+    return;
+  }
+
+  if (template.inputMode === 'bizarre-shift') {
+    renderBizarreShiftTrimmer(container, template, state, resourcePool, onStateChange);
     return;
   }
 
@@ -383,6 +394,270 @@ function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChang
 
   colorSelect.addEventListener('change', () => {
     mediaEntry.glowColor = colorSelect.value;
+    onStateChange();
+  });
+
+  syncLabels();
+}
+
+function renderBizarreShiftTrimmer(container, template, state, resourcePool, onStateChange) {
+  const cut = template.cuts[0];
+  if (!cut) {
+    return;
+  }
+
+  const card = document.createElement('article');
+  card.className = 'cut-row';
+  card.innerHTML = `
+    <div class="cut-row-head">
+      <div class="cut-row-title-wrap">
+        <span class="cut-index">AI</span>
+        <div>
+          <h3 class="cut-row-title">${escapeHtml(cut.label)}</h3>
+          <p class="cut-duration-meta" data-role="bizarre-meta">DURATION ${cut.durationSec.toFixed(1)}S // 2.0S GLITCH SHIFT</p>
+        </div>
+      </div>
+      <span class="status-indicator" data-role="status-badge">WAITING</span>
+    </div>
+  `;
+
+  const fileLabel = document.createElement('label');
+  fileLabel.className = 'upload-trigger';
+  const labelTextNode = document.createTextNode('動画または写真を選ぶ（人物・犬・猫・鳥などを自動認識）');
+  fileLabel.appendChild(labelTextNode);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'video/*,image/*';
+  fileInput.className = 'sr-only';
+  fileLabel.appendChild(fileInput);
+
+  const feedbackBox = document.createElement('div');
+  feedbackBox.className = 'feedback-area';
+
+  const controlsBox = document.createElement('div');
+  controlsBox.className = 'beat-controls-grid hidden';
+
+  card.appendChild(fileLabel);
+  card.appendChild(feedbackBox);
+  card.appendChild(controlsBox);
+  container.appendChild(card);
+
+  const statusBadge = card.querySelector('[data-role="status-badge"]');
+  const bizarreMeta = card.querySelector('[data-role="bizarre-meta"]');
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    statusBadge.textContent = 'LOADING AI...';
+    statusBadge.className = 'status-indicator is-loading';
+    feedbackBox.innerHTML =
+      '<p class="notice notice-tip">人物・動物の自動切り抜きAI（ブラウザ内処理）を読み込んでいます...</p>';
+
+    try {
+      const previousEntry = state.mediaByCutId[cut.id];
+      const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
+
+      if (previousEntry?.element) {
+        resourcePool.releaseElement?.(previousEntry.element);
+      }
+      if (previousEntry?.objectUrl) {
+        resourcePool.revokeUrl(previousEntry.objectUrl);
+      }
+
+      if (inspected.mediaType === 'video') {
+        const videoDur = Math.max(0.5, inspected.durationSec || 6);
+        cut.durationSec = Math.max(
+          Math.min(2.5, videoDur),
+          Number(Math.min(8.0, videoDur).toFixed(1))
+        );
+      } else {
+        cut.durationSec = 6.0;
+      }
+
+      inspected.bizarrePalette = 'purple-lime';
+      inspected.bizarreTouch = 'color-only';
+      inspected.bizarreTriggerSec = Math.min(2.0, Math.max(0.5, cut.durationSec - 0.5));
+      inspected.trimStartSec = 0;
+      state.mediaByCutId[cut.id] = inspected;
+
+      renderBizarreControls(controlsBox, cut, inspected, bizarreMeta, onStateChange);
+      onStateChange();
+
+      await ensureBizarreSegmenterReady();
+      const crop = computeCoverCropRect(inspected.width, inspected.height, 360, 640, 'none', 0);
+      const mask = await segmentFrameToSubjectMask(inspected.element, crop, 360, 640);
+      inspected.subjectMask = mask;
+
+      renderPrecheckMessages(feedbackBox, inspected.warnings);
+      if (mask && mask.coverageRatio > 0.005) {
+        statusBadge.textContent = 'SUBJECT READY';
+        statusBadge.className = 'status-indicator is-ready';
+        feedbackBox.insertAdjacentHTML(
+          'afterbegin',
+          '<p class="notice notice-ok">人物・動物を検出しました！背景はそのまま、指定秒数で一瞬「ザザッ」と乱れて異色カラーへ切り替わります。</p>'
+        );
+      } else {
+        statusBadge.textContent = 'AI READY';
+        statusBadge.className = 'status-indicator is-ready';
+        feedbackBox.insertAdjacentHTML(
+          'afterbegin',
+          '<p class="notice notice-tip">AIエンジン準備完了（先頭フレームに人物/犬/猫などが少ない場合でも、2秒後に登場したフレームから自動適用されます）。</p>'
+        );
+      }
+
+      labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
+      onStateChange();
+    } catch (error) {
+      statusBadge.textContent = 'ERROR';
+      statusBadge.className = 'status-indicator is-error';
+      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
+    }
+  });
+}
+
+function renderBizarreControls(controlsBox, cut, mediaEntry, bizarreMeta, onStateChange) {
+  controlsBox.classList.remove('hidden');
+  const isVideo = mediaEntry.mediaType === 'video';
+  const totalMediaDur = isVideo ? Math.max(0.5, mediaEntry.durationSec || 6) : 15.0;
+  const maxDur = isVideo
+    ? Math.max(0.5, Math.floor(Math.min(60.0, totalMediaDur) * 10) / 10)
+    : 15.0;
+  const minDur = Math.min(2.5, maxDur);
+  const initialMaxStart = isVideo
+    ? Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10)
+    : 0;
+  const paletteOptions = Object.entries(BIZARRE_PALETTES)
+    .map(([key, info]) => `<option value="${escapeHtml(key)}">${escapeHtml(info.label)}</option>`)
+    .join('');
+
+  controlsBox.innerHTML = `
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-track" aria-hidden="true">
+              <div class="trim-window" id="bizarre-trim-window"></div>
+            </div>
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="bizarre-duration-label">使う長さ：${cut.durationSec.toFixed(1)}秒</span>
+      </div>
+      <input type="range" id="bizarre-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.1" value="${cut.durationSec}" aria-label="動画の長さ調整" />
+    </div>
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-header">
+              <span class="trim-label" id="bizarre-start-label">開始位置：0.0秒 〜 ${cut.durationSec.toFixed(1)}秒</span>
+            </div>
+            <input type="range" id="bizarre-start-slider" class="trim-slider" min="0" max="${initialMaxStart.toFixed(1)}" step="0.1" value="0" aria-label="切り出し開始位置" />
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="bizarre-trigger-label">切替タイミング：${mediaEntry.bizarreTriggerSec.toFixed(1)}秒後（一瞬グリッチ→異色カラー）</span>
+      </div>
+      <input type="range" id="bizarre-trigger-slider" class="trim-slider" min="0.5" max="${Math.max(0.5, cut.durationSec - 0.5).toFixed(1)}" step="0.1" value="${mediaEntry.bizarreTriggerSec.toFixed(1)}" aria-label="異色カラー切替タイミング" />
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="bizarre-palette-select">カラー配色（被写体のみ変化・背景そのまま）</label>
+      <select id="bizarre-palette-select" class="quality-select">
+        ${paletteOptions}
+      </select>
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="bizarre-touch-select">アニメ表現タッチ</label>
+      <select id="bizarre-touch-select" class="quality-select">
+        <option value="color-only" selected>カラー変化のみ（元の質感を活かして異色化）</option>
+        <option value="anime-ink">アニメ輪郭線＋濃い影（太線・パキッと陰影）</option>
+      </select>
+    </div>
+  `;
+
+  const trimWindow = controlsBox.querySelector('#bizarre-trim-window');
+  const durationSlider = controlsBox.querySelector('#bizarre-duration-slider');
+  const durationLabel = controlsBox.querySelector('#bizarre-duration-label');
+  const startSlider = controlsBox.querySelector('#bizarre-start-slider');
+  const startLabel = controlsBox.querySelector('#bizarre-start-label');
+  const triggerSlider = controlsBox.querySelector('#bizarre-trigger-slider');
+  const triggerLabel = controlsBox.querySelector('#bizarre-trigger-label');
+  const paletteSelect = controlsBox.querySelector('#bizarre-palette-select');
+  const touchSelect = controlsBox.querySelector('#bizarre-touch-select');
+
+  function syncLabels() {
+    durationLabel.textContent = isVideo
+      ? `使う長さ：${cut.durationSec.toFixed(1)}秒（最大 ${maxDur.toFixed(1)}秒 / 元動画 ${totalMediaDur.toFixed(1)}秒）`
+      : `再生時間：${cut.durationSec.toFixed(1)}秒（写真）`;
+
+    if (isVideo && startSlider && startLabel && trimWindow) {
+      const start = mediaEntry.trimStartSec || 0;
+      const end = Math.min(totalMediaDur, start + cut.durationSec);
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.disabled = maxStart <= 0.05;
+      startLabel.textContent =
+        maxStart <= 0.05
+          ? `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒（全体を使用中）`
+          : `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+
+      const leftPct = Math.min(100, (start / totalMediaDur) * 100);
+      const widthPct = Math.min(100 - leftPct, (cut.durationSec / totalMediaDur) * 100);
+      trimWindow.style.left = `${leftPct}%`;
+      trimWindow.style.width = `${widthPct}%`;
+    }
+
+    const trig = mediaEntry.bizarreTriggerSec ?? 2.0;
+    triggerLabel.textContent = `切替タイミング：${trig.toFixed(1)}秒後（一瞬ザザッと乱れて異色カラーへ）`;
+    bizarreMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${trig.toFixed(1)}S GLITCH SHIFT`;
+  }
+
+  durationSlider.addEventListener('input', () => {
+    cut.durationSec = Number(durationSlider.value);
+    if (isVideo && startSlider) {
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.max = maxStart.toFixed(1);
+      if ((mediaEntry.trimStartSec || 0) > maxStart) {
+        mediaEntry.trimStartSec = maxStart;
+        startSlider.value = maxStart.toFixed(1);
+      }
+    }
+    const maxTrig = Math.max(0.5, Number((cut.durationSec - 0.5).toFixed(1)));
+    triggerSlider.max = maxTrig.toFixed(1);
+    if ((mediaEntry.bizarreTriggerSec || 2.0) > maxTrig) {
+      mediaEntry.bizarreTriggerSec = maxTrig;
+      triggerSlider.value = maxTrig.toFixed(1);
+    }
+    syncLabels();
+    onStateChange();
+  });
+
+  if (startSlider) {
+    startSlider.addEventListener('input', () => {
+      mediaEntry.trimStartSec = Number(startSlider.value);
+      syncLabels();
+      onStateChange();
+    });
+  }
+
+  triggerSlider.addEventListener('input', () => {
+    mediaEntry.bizarreTriggerSec = Number(triggerSlider.value);
+    syncLabels();
+    onStateChange();
+  });
+
+  paletteSelect.addEventListener('change', () => {
+    mediaEntry.bizarrePalette = paletteSelect.value;
+    onStateChange();
+  });
+
+  touchSelect.addEventListener('change', () => {
+    mediaEntry.bizarreTouch = touchSelect.value;
     onStateChange();
   });
 

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-bizarre-shift-08",
+  "title": "Bizarre Color Shift・被写体だけ異色カラー演出",
+  "description": "人物や犬・猫・鳥などの動物だけをブラウザ内AIで切り抜き、2秒後に一瞬「ザザッ」と画面が乱れた直後、背景はそのまま被写体だけが異色アニメカラーへ変化します。",
+  "status": "published",
+  "inputMode": "bizarre-shift",
+  "allowSourceAudio": true,
+  "defaultIncludeAudio": false,
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "重低音・緊迫系／コミカルなアニメ転換BGM（元動画音声のON/OFF切替可・初期OFF）",
+    "bpmRange": {
+      "min": 95,
+      "max": 145
+    },
+    "suggestedSearchKeywords": [
+      "bizarre anime transition",
+      "dramatic reveal",
+      "glitch drop"
+    ],
+    "note": "STEP 2でカラー配色・タッチ（カラー変化のみ / アニメ輪郭線＋濃い影）・切替タイミングを調整でき、STEP 4では音声のON/OFF（初期OFF）を選んで書き出せます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "人物・動物の異色カラー変化（2秒グリッチ転換）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 6.0,
+      "shootingGuide": {
+        "shotType": "人物・犬・猫・鳥・馬などが画面にはっきり映る動画または写真",
+        "cameraMove": "背景と被写体の境界がわかりやすい構図（前半2秒は通常色で再生）",
+        "tips": "人物・犬・猫・鳥・馬・牛・羊に自動反応します。動物や人が大きめに映っていると、2秒後のグリッチ切り替えがより綺麗に決まります。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "bizarre-shift",
+        "transitionIn": "cut",
+        "filter": "none"
+      },
+      "textOverlay": {
+        "defaultText": "",
+        "placeholder": "例：MENACING *SHIFT*（空欄なら文字なし）",
+        "maxLength": 30,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#d9ff3b"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T23:25:00+09:00",
+    "updatedAt": "2026-11-27T23:25:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "MediaPipe DeepLab-v3によるブラウザ内被写体切り抜き・2.0秒グリッチ転換・カラー配色/タッチ選択・音声ON/OFF（初期OFF）"
+  }
+}

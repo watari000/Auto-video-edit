@@ -1,6 +1,7 @@
 import {
   buildTimelineSegments,
   computeAdaptiveVideoBitrate,
+  computeCoverCropRect,
   computeSafeRenderDimensions,
   drawCutFrame,
   resolveCutAtTime,
@@ -8,6 +9,7 @@ import {
 } from '../../lib/video-engine.js';
 import { createRecordingChunkSink } from '../../lib/opfs-chunk-sink.js';
 import { exportTimelineWithWebCodecs } from '../../lib/webcodecs-exporter.js';
+import { segmentFrameToSubjectMask } from '../../lib/bizarre-shift-engine.js';
 
 async function acquireScreenWakeLock() {
   if (typeof navigator === 'undefined' || typeof navigator.wakeLock?.request !== 'function') {
@@ -25,6 +27,7 @@ async function acquireScreenWakeLock() {
  */
 export function initExporterSection(container, template, state, resourcePool, beforeExportCallback) {
   const canExportAudio = Boolean(template.allowSourceAudio);
+  const defaultAudioOn = Boolean(canExportAudio && template.defaultIncludeAudio !== false);
   container.innerHTML = `
     <div class="export-dock">
       <div class="export-dock-grid">
@@ -37,7 +40,7 @@ export function initExporterSection(container, template, state, resourcePool, be
           ${
             canExportAudio
               ? `<label class="audio-export-toggle">
-                  <input type="checkbox" id="export-include-audio" checked />
+                  <input type="checkbox" id="export-include-audio" ${defaultAudioOn ? 'checked' : ''} />
                   <span>元動画の音声を含めて書き出す（音あり）</span>
                 </label>`
               : ''
@@ -45,7 +48,7 @@ export function initExporterSection(container, template, state, resourcePool, be
         </div>
         <div>
           <button type="button" id="export-start-btn" class="btn btn-accent">
-            ${canExportAudio ? '音声付きで書き出す' : '無音動画を書き出す'}
+            ${defaultAudioOn ? '音声付きで書き出す' : '無音動画を書き出す'}
           </button>
         </div>
       </div>
@@ -469,6 +472,28 @@ function runTimelineRecording(ctx, segments, totalDurationSec, fps, width, heigh
           } else if (currentVideoCutId) {
             pauseAllVideos(state.mediaByCutId);
             currentVideoCutId = null;
+          }
+
+          if (
+            segment.cut.effect?.motion === 'bizarre-shift' &&
+            entry?.mediaType === 'video' &&
+            localSec >= (entry.bizarreTriggerSec ?? 2.0) - 0.15 &&
+            !entry._segmentInFlight &&
+            nowMs - (entry._lastSegMs || 0) >= 120
+          ) {
+            entry._segmentInFlight = true;
+            const crop = computeCoverCropRect(entry.width, entry.height, width, height, 'none', 0);
+            segmentFrameToSubjectMask(entry.element, crop, width, height)
+              .then((mask) => {
+                if (mask) {
+                  entry.subjectMask = mask;
+                  entry._lastSegMs = performance.now();
+                }
+              })
+              .catch(() => {})
+              .finally(() => {
+                entry._segmentInFlight = false;
+              });
           }
 
           drawCutFrame(

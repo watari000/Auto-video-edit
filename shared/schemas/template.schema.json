@@ -48,12 +48,16 @@
     },
     "inputMode": {
       "type": "string",
-      "enum": ["multi-clip", "beat-sync-video"],
-      "description": "素材入力モード（複数カット選択 or ダンス動画1本の音声ビート同期）"
+      "enum": ["multi-clip", "beat-sync-video", "bizarre-shift"],
+      "description": "素材入力モード（複数カット選択 / ダンス動画ビート同期 / 被写体異色カラーシフト）"
     },
     "allowSourceAudio": {
       "type": "boolean",
       "description": "利用者がアップロードした元動画の音声を保持して書き出せるようにする"
+    },
+    "defaultIncludeAudio": {
+      "type": "boolean",
+      "description": "allowSourceAudioがtrueのときの初期チェック状態（省略時はtrue）"
     },
     "aspectRatio": {
       "type": "string",
@@ -247,7 +251,7 @@
           "properties": {
             "motion": {
               "type": "string",
-              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-glow"]
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-glow", "bizarre-shift"]
             },
             "transitionIn": {
               "type": "string",

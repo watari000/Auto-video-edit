@@ -4,6 +4,7 @@ import {
   drawCutFrame,
   resolveCutAtTime,
 } from '../../lib/video-engine.js';
+import { createSyntheticSubjectMask } from '../../lib/bizarre-shift-engine.js';
 
 const SAMPLE_WIDTH = 180;
 const SAMPLE_HEIGHT = 320;
@@ -195,11 +196,18 @@ export function renderGalleryView(container, catalogItems, activeTemplateId, onS
         cardState.totalDurationSec = timeline.totalDurationSec;
 
         template.cuts.forEach((cut, cutIdx) => {
-          cardState.sampleMediaByCutId[cut.id] = createSampleCutMedia(cut, cutIdx, index, () => {
+          const sampleEntry = createSampleCutMedia(cut, cutIdx, index, () => {
             if (!disposed && cardState.paused) {
               drawCardFrame(cardState);
             }
           });
+          if (cut.effect?.motion === 'bizarre-shift') {
+            sampleEntry.subjectMask = createSyntheticSubjectMask(SAMPLE_WIDTH, SAMPLE_HEIGHT);
+            sampleEntry.bizarrePalette = 'purple-lime';
+            sampleEntry.bizarreTouch = 'anime-ink';
+            sampleEntry.bizarreTriggerSec = 2.0;
+          }
+          cardState.sampleMediaByCutId[cut.id] = sampleEntry;
         });
 
         cardState.ready = true;

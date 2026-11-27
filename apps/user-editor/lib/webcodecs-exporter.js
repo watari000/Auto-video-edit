@@ -1,8 +1,13 @@
 import {
   computeAdaptiveVideoBitrate,
+  computeCoverCropRect,
   drawCutFrame,
   resolveCutAtTime,
 } from './video-engine.js';
+import {
+  ensureBizarreSegmenterReady,
+  segmentFrameToSubjectMask,
+} from './bizarre-shift-engine.js';
 
 /**
  * タイムライン全体から固定FPS（例: 30fps）のフレーム計画と連続カットグループを生成する。
@@ -370,6 +375,11 @@ export async function exportTimelineWithWebCodecs({
   }
 
   try {
+    const needsBizarreAi = segments.some((s) => s.cut.effect?.motion === 'bizarre-shift');
+    if (needsBizarreAi) {
+      await ensureBizarreSegmenterReady().catch(() => null);
+    }
+
     await output.start();
     const plan = buildOfflineFramePlan(segments, fps);
 
@@ -434,6 +444,28 @@ export async function exportTimelineWithWebCodecs({
                     frameEntry.width = lastCanvas.width;
                     frameEntry.height = lastCanvas.height;
                     frameEntry.overrideVideoTimeSec = srcTime;
+                    if (cut.effect?.motion === 'bizarre-shift') {
+                      const triggerSec = frameEntry.bizarreTriggerSec ?? 2.0;
+                      if (frame.localSec >= triggerSec) {
+                        const crop = computeCoverCropRect(
+                          frameEntry.width,
+                          frameEntry.height,
+                          width,
+                          height,
+                          'none',
+                          0
+                        );
+                        frameEntry.subjectMask =
+                          (await segmentFrameToSubjectMask(
+                            frameEntry.element,
+                            crop,
+                            width,
+                            height
+                          ).catch(() => null)) || frameEntry.subjectMask;
+                      } else {
+                        frameEntry.subjectMask = null;
+                      }
+                    }
                     drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
                   } else {
                     drawCutFrame(ctx, cut, entry, frame.localSec, width, height, text);
@@ -470,6 +502,49 @@ export async function exportTimelineWithWebCodecs({
                 );
                 await seekVideoForOffline(entry.element, srcTime);
                 frameEntry.overrideVideoTimeSec = srcTime;
+                if (cut.effect?.motion === 'bizarre-shift') {
+                  const triggerSec = frameEntry.bizarreTriggerSec ?? 2.0;
+                  if (frame.localSec >= triggerSec) {
+                    const crop = computeCoverCropRect(
+                      frameEntry.width,
+                      frameEntry.height,
+                      width,
+                      height,
+                      'none',
+                      0
+                    );
+                    frameEntry.subjectMask =
+                      (await segmentFrameToSubjectMask(
+                        frameEntry.element,
+                        crop,
+                        width,
+                        height
+                      ).catch(() => null)) || frameEntry.subjectMask;
+                  } else {
+                    frameEntry.subjectMask = null;
+                  }
+                }
+                drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
+              } else if (entry && cut.effect?.motion === 'bizarre-shift' && entry.element) {
+                const triggerSec = frameEntry.bizarreTriggerSec ?? 2.0;
+                if (frame.localSec >= triggerSec && !frameEntry._cachedImageMask) {
+                  const crop = computeCoverCropRect(
+                    frameEntry.width,
+                    frameEntry.height,
+                    width,
+                    height,
+                    'none',
+                    0
+                  );
+                  frameEntry._cachedImageMask = await segmentFrameToSubjectMask(
+                    frameEntry.element,
+                    crop,
+                    width,
+                    height
+                  ).catch(() => null);
+                }
+                frameEntry.subjectMask =
+                  frame.localSec >= triggerSec ? frameEntry._cachedImageMask : null;
                 drawCutFrame(ctx, cut, frameEntry, frame.localSec, width, height, text);
               } else {
                 drawCutFrame(ctx, cut, entry, frame.localSec, width, height, text);

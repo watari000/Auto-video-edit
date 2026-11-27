@@ -89,5 +89,18 @@
     "filterTag": "MELODY GLOW",
     "templatePath": "./sample-dance-beat-07/template.json",
     "coverAsset": "./sample-dance-beat-07/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-bizarre-shift-08",
+    "title": "Bizarre Color Shift・被写体だけ異色カラー演出",
+    "category": "ANIME / COLOR SHIFT",
+    "summary": "2秒後に一瞬「ザザッ」と画面が乱れ、背景はそのままで人物や動物（犬・猫・鳥など）だけが異色アニメカラーへ変化します。",
+    "durationSec": 6.0,
+    "cutCount": 1,
+    "aspectRatio": "9:16",
+    "bpmLabel": "2.0s GLITCH",
+    "filterTag": "SUBJECT SHIFT",
+    "templatePath": "./sample-bizarre-shift-08/template.json",
+    "coverAsset": "./sample-bizarre-shift-08/guide-assets/cut-01.svg"
   }
 ]

@@ -30,6 +30,12 @@ import {
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { createRecordingChunkSink } from '../apps/user-editor/lib/opfs-chunk-sink.js';
 import {
+  buildBizarreColorLut,
+  computeBizarreShiftState,
+  extractSubjectMask,
+  stylizeSubjectPixels,
+} from '../apps/user-editor/lib/bizarre-shift-engine.js';
+import {
   buildOfflineFramePlan,
   computeDecodeCanvasMaxSize,
   shiftAudioPacketTimestamp,
@@ -72,7 +78,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 7);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 8);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -105,6 +111,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   assert.equal(seenIds.has('sample-kinetic-caption-05'), true);
   assert.equal(seenIds.has('sample-rapid-recap-06'), true);
   assert.equal(seenIds.has('sample-dance-beat-07'), true);
+  assert.equal(seenIds.has('sample-bizarre-shift-08'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -473,4 +480,52 @@ test('webcodecs-exporter helpers build exact 30fps plans, shift audio timestamps
   ]) {
     assert.ok(mb[symbol], `Expected vendored mediabunny.min.mjs to export ${symbol}`);
   }
+});
+
+test('sample-bizarre-shift-08 defaults source audio to OFF and bizarre-shift-engine isolates subject only', async () => {
+  const raw = await fs.readFile(
+    path.join(REPO_ROOT, 'shared', 'templates', 'sample-bizarre-shift-08', 'template.json'),
+    'utf8'
+  );
+  const template = JSON.parse(raw);
+  assert.equal(template.inputMode, 'bizarre-shift');
+  assert.equal(template.allowSourceAudio, true);
+  assert.equal(template.defaultIncludeAudio, false);
+
+  const normal = computeBizarreShiftState(1.9, 2.0);
+  assert.equal(normal.phase, 'normal');
+  assert.equal(normal.shiftBlend, 0);
+
+  const glitchEarly = computeBizarreShiftState(2.04, 2.0, 0.18);
+  assert.equal(glitchEarly.phase, 'glitch');
+  assert.ok(glitchEarly.glitchIntensity > 0);
+  assert.equal(glitchEarly.shiftBlend, 0);
+
+  const shifted = computeBizarreShiftState(2.2, 2.0, 0.18);
+  assert.equal(shifted.phase, 'shifted');
+  assert.equal(shifted.shiftBlend, 1);
+
+  // 5x5 マスク中央 3x3 に人物(15)・犬(12)・猫(8)、周囲に背景(0)・椅子(9)を配置
+  const classes = new Uint8Array([
+    0, 0, 9, 0, 0,
+    0, 15, 12, 8, 0,
+    9, 15, 12, 8, 0,
+    0, 15, 12, 8, 0,
+    0, 0, 0, 9, 0,
+  ]);
+  const extracted = extractSubjectMask(classes, 5, 5);
+  assert.ok(extracted.subjectPixelCount >= 6);
+  assert.equal(extracted.mask[0], 0);
+  assert.ok(extracted.mask[2 * 5 + 2] >= 200);
+
+  const lut = buildBizarreColorLut('purple-lime', 'anime-ink');
+  assert.equal(lut.length, 256 * 3);
+
+  const srcRgba = new Uint8ClampedArray(25 * 4).fill(180);
+  const outOnlyColor = stylizeSubjectPixels(srcRgba, extracted.mask, 5, 5, 'purple-lime', 'color-only');
+  // 背景隅 (0,0) は透明（alpha=0）のまま元映像を残す
+  assert.equal(outOnlyColor[3], 0);
+  // 中央被写体 (2,2) は紫〜ライム系の異色カラーかつ不透明
+  const centerOffset = (2 * 5 + 2) * 4;
+  assert.ok(outOnlyColor[centerOffset + 3] >= 200);
 });

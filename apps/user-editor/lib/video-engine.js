@@ -3,6 +3,7 @@ import {
   sampleBeatStrengthAt,
   sampleEqualizerBarsAt,
 } from './audio-beat-analyzer.js';
+import { drawBizarreShiftComposite } from './bizarre-shift-engine.js';
 
 const BACKLIGHT_COLOR_MAP = {
   'warm-gold': [245, 198, 128],
@@ -912,18 +913,35 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
   }
 
   if (element && sourceWidth > 0 && sourceHeight > 0) {
-    // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ
-    const cropMotion = cut.effect?.motion === 'beat-glow' ? 'none' : cut.effect?.motion || 'none';
-    const crop = computeCoverCropRect(
-      sourceWidth,
-      sourceHeight,
-      width,
-      height,
-      cropMotion,
-      progress
-    );
+    if (cut.effect?.motion === 'bizarre-shift') {
+      const crop = computeCoverCropRect(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        'none',
+        progress
+      );
+      drawBizarreShiftComposite(ctx, element, crop, width, height, localSec, {
+        triggerSec: mediaEntry?.bizarreTriggerSec ?? 2.0,
+        palette: mediaEntry?.bizarrePalette || 'purple-lime',
+        touchStyle: mediaEntry?.bizarreTouch || 'color-only',
+        subjectMask: mediaEntry?.subjectMask || null,
+      });
+    } else {
+      // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ
+      const cropMotion = cut.effect?.motion === 'beat-glow' ? 'none' : cut.effect?.motion || 'none';
+      const crop = computeCoverCropRect(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        cropMotion,
+        progress
+      );
 
-    drawCroppedMediaWithFilter(ctx, element, crop, width, height, cut.effect?.filter);
+      drawCroppedMediaWithFilter(ctx, element, crop, width, height, cut.effect?.filter);
+    }
   } else {
     // 素材未選択時でもタイムライン確認ができるようプレースホルダーを描画する
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
