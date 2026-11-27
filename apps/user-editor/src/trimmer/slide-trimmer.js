@@ -748,7 +748,7 @@ function renderMatrixCodeTrimmer(container, template, state, resourcePool, onSta
 
       inspected.matrixTriggerSec = Math.min(2.0, Math.max(0.5, cut.durationSec - 0.5));
       inspected.matrixDensity = 'standard';
-      inspected.matrixVisibility = 'balanced';
+      inspected.matrixVisibility = 'silhouette';
       inspected.trimStartSec = 0;
       state.mediaByCutId[cut.id] = inspected;
 
@@ -819,17 +819,17 @@ function renderMatrixCodeControls(controlsBox, cut, mediaEntry, matrixMeta, onSt
     <div class="beat-control-row">
       <label class="trim-label" for="matrix-density-select">コード文字の細かさ</label>
       <select id="matrix-density-select" class="quality-select">
-        <option value="fine">細かめ（高精細シルエット）</option>
-        <option value="standard" selected>標準（バランス重視・おすすめ）</option>
+        <option value="fine">超高精細（輪郭がより細密）</option>
+        <option value="standard" selected>標準（輪郭と文字のバランス・おすすめ）</option>
         <option value="bold">大きめ（文字の迫力重視）</option>
       </select>
     </div>
     <div class="beat-control-row">
-      <label class="trim-label" for="matrix-visibility-select">元映像の浮かび上がり方</label>
+      <label class="trim-label" for="matrix-visibility-select">輪郭・コードの見え方</label>
       <select id="matrix-visibility-select" class="quality-select">
-        <option value="silhouette">シルエットくっきり</option>
-        <option value="balanced" selected>標準バランス（コードの雨＋映像）</option>
-        <option value="rain">コードの雨メイン（サイバー重視）</option>
+        <option value="silhouette" selected>輪郭くっきり（コードで形を描く・おすすめ）</option>
+        <option value="balanced">輪郭＋明暗バランス</option>
+        <option value="rain">画面全体コード多め</option>
       </select>
     </div>
   `;

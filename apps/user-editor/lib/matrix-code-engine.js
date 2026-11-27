@@ -1,21 +1,21 @@
 /**
- * 2秒後の一瞬グリッチ（「ザザッ」）の直後、黒と緑のデジタルコードだけが滝のように流れる世界へ切り替え、
- * 元映像の明暗を緑コードの濃淡として浮かび上がらせる純粋関数＆Canvas描画エンジン。
+ * 2秒後の一瞬グリッチ（「ザザッ」）の直後、黒と緑のデジタルコードだけで
+ * 写真や動画の輪郭・シルエットがくっきり浮かび上がり、文字が流れて脈打つ表現を描画するエンジン。
  */
 
 const MATRIX_GLYPHS =
-  'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$+-*/=%"#&_';
+  '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const DENSITY_CONFIG = {
-  fine: { cols: 48, fontRatio: 1.05 },
-  standard: { cols: 34, fontRatio: 1.08 },
-  bold: { cols: 24, fontRatio: 1.12 },
+  fine: { cols: 72, fontRatio: 1.08 },
+  standard: { cols: 52, fontRatio: 1.1 },
+  bold: { cols: 36, fontRatio: 1.14 },
 };
 
 const VISIBILITY_CONFIG = {
-  silhouette: { rainWeight: 0.34, lumaWeight: 0.78, contrastGamma: 0.85 },
-  balanced: { rainWeight: 0.5, lumaWeight: 0.62, contrastGamma: 0.95 },
-  rain: { rainWeight: 0.72, lumaWeight: 0.4, contrastGamma: 1.05 },
+  silhouette: { edgeBoost: 1.45, lumaWeight: 0.48, floorCutoff: 0.14 },
+  balanced: { edgeBoost: 1.15, lumaWeight: 0.65, floorCutoff: 0.1 },
+  rain: { edgeBoost: 0.9, lumaWeight: 0.72, floorCutoff: 0.06 },
 };
 
 let reusableLumaCanvas = null;
@@ -30,7 +30,7 @@ function hash2d(a, b) {
 }
 
 /**
- * 経過秒数から「通常 → 一瞬のザザッ（グリッチ） → マトリックスコード世界」の状態を返す純粋関数。
+ * 経過秒数から「通常 → 一瞬のザザッ（グリッチ） → コード輪郭世界」の状態を返す純粋関数。
  */
 export function computeMatrixWorldState(
   localSec,
@@ -69,35 +69,41 @@ export function computeMatrixWorldState(
 }
 
 /**
- * 指定の列・行・時刻に対して決定論的にコード文字とデジタルレイン強度(0..1)を返す純粋関数。
- * プレビューとオフライン30fps書き出しで完全に一致したコードの雨を生成できる。
+ * 指定のセル(col, row)におけるコード文字と、輪郭上で文字が流れるような微細なデータストリーム波を返す純粋関数。
  */
 export function sampleMatrixCell(col, row, totalRows, elapsedMatrixSec) {
-  const speedRowsPerSec = 10 + hash2d(col, 13.7) * 14;
-  const trailLen = 8 + Math.floor(hash2d(col, 29.3) * 12);
-  const phaseOffset = hash2d(col, 51.9) * (totalRows + trailLen);
-  const cycleLen = totalRows + trailLen + 6;
-  const headRow = (phaseOffset + elapsedMatrixSec * speedRowsPerSec) % cycleLen;
-
-  let distFromHead = headRow - row;
-  if (distFromHead < 0) {
-    distFromHead += cycleLen;
-  }
-
-  let rainIntensity = 0;
-  let isHead = false;
-  if (distFromHead >= 0 && distFromHead < 1.15) {
-    rainIntensity = 1.0;
-    isHead = true;
-  } else if (distFromHead > 0 && distFromHead <= trailLen) {
-    rainIntensity = Math.pow(1 - distFromHead / trailLen, 1.45);
-  }
-
-  const glyphTick = Math.floor(elapsedMatrixSec * (7 + hash2d(col, row) * 6));
-  const glyphIdx = Math.floor(hash2d(col * 31 + row, glyphTick) * MATRIX_GLYPHS.length);
+  // 縦に落ちる雨ではなく、輪郭・映像の上をデータ波が流れて文字が入れ替わる演出
+  const streamWave =
+    0.5 + 0.5 * Math.sin(col * 0.35 + row * 0.22 - elapsedMatrixSec * 6.5);
+  const changeRate = 8 + hash2d(col, row) * 8;
+  const glyphTick = Math.floor(elapsedMatrixSec * changeRate + hash2d(row, col) * 17);
+  const glyphIdx = Math.floor(hash2d(col * 37 + row * 13, glyphTick) * MATRIX_GLYPHS.length);
   const glyph = MATRIX_GLYPHS[glyphIdx] || '0';
 
-  return { glyph, rainIntensity, isHead };
+  return {
+    glyph,
+    rainIntensity: streamWave,
+    isHead: streamWave > 0.9,
+  };
+}
+
+/**
+ * 輝度配列(cols*rows)から各セルの輪郭強度（エッジ 0..1）を計算する純粋関数。
+ */
+export function computeGridEdgeMap(lumaGrid, cols, rows) {
+  const edges = new Float32Array(cols * rows);
+  for (let y = 0; y < rows; y++) {
+    const y0 = y > 0 ? y - 1 : 0;
+    const y1 = y + 1 < rows ? y + 1 : rows - 1;
+    for (let x = 0; x < cols; x++) {
+      const x0 = x > 0 ? x - 1 : 0;
+      const x1 = x + 1 < cols ? x + 1 : cols - 1;
+      const gx = Math.abs(lumaGrid[y * cols + x1] - lumaGrid[y * cols + x0]);
+      const gy = Math.abs(lumaGrid[y1 * cols + x] - lumaGrid[y0 * cols + x]);
+      edges[y * cols + x] = Math.min(1, (gx + gy) * 1.9);
+    }
+  }
+  return edges;
 }
 
 function getReusableCanvas(existing, width, height) {
@@ -132,7 +138,6 @@ function drawMatrixGlitchBurst(ctx, width, height, progress, intensity) {
     ctx.drawImage(reusableGlitchCanvas, 0, sy, width, sh, offsetX, sy, width, sh);
   }
 
-  // 緑・シアンのデジタル走査ノイズ
   ctx.globalCompositeOperation = 'screen';
   ctx.fillStyle = `rgba(34, 255, 102, ${(0.36 * intensity).toFixed(3)})`;
   for (let s = 0; s < 14; s++) {
@@ -146,7 +151,7 @@ function drawMatrixGlitchBurst(ctx, width, height, progress, intensity) {
 }
 
 /**
- * 1フレーム分の通常映像→一瞬グリッチ→黒×緑デジタルコード世界の描画を実行する。
+ * 1フレーム分の通常映像→一瞬グリッチ→コードだけで輪郭が浮かび上がる世界を描画する。
  */
 export function drawMatrixCodeComposite(
   ctx,
@@ -160,7 +165,7 @@ export function drawMatrixCodeComposite(
   const {
     triggerSec = 2.0,
     density = 'standard',
-    visibility = 'balanced',
+    visibility = 'silhouette',
   } = options;
 
   const worldState = computeMatrixWorldState(localSec, triggerSec);
@@ -174,27 +179,32 @@ export function drawMatrixCodeComposite(
   }
 
   const dCfg = DENSITY_CONFIG[density] || DENSITY_CONFIG.standard;
-  const vCfg = VISIBILITY_CONFIG[visibility] || VISIBILITY_CONFIG.balanced;
+  const vCfg = VISIBILITY_CONFIG[visibility] || VISIBILITY_CONFIG.silhouette;
   const cols = dCfg.cols;
   const cellW = width / cols;
-  const cellH = cellW * 1.18;
+  const cellH = cellW * 1.12;
   const rows = Math.ceil(height / cellH);
 
-  // 元映像を cols x rows の極小グリッドへ縮小し、各セルの明るさ（輝度）を取得する
   reusableLumaCanvas = getReusableCanvas(reusableLumaCanvas, cols, rows);
   const lumaCtx = reusableLumaCanvas.getContext('2d', { willReadFrequently: true });
-  let rgba = null;
+  const lumaGrid = new Float32Array(cols * rows);
+
   if (lumaCtx) {
     lumaCtx.drawImage(sourceElement, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, cols, rows);
-    rgba = lumaCtx.getImageData(0, 0, cols, rows).data;
+    const rgba = lumaCtx.getImageData(0, 0, cols, rows).data;
+    for (let i = 0; i < lumaGrid.length; i++) {
+      const p = i * 4;
+      lumaGrid[i] = (0.299 * rgba[p] + 0.587 * rgba[p + 1] + 0.114 * rgba[p + 2]) / 255;
+    }
   }
 
+  const edgeGrid = computeGridEdgeMap(lumaGrid, cols, rows);
+
   ctx.save();
-  // 背景は完全な漆黒
-  ctx.fillStyle = '#020603';
+  ctx.fillStyle = '#020503';
   ctx.fillRect(0, 0, width, height);
 
-  const fontSize = Math.max(7, Math.round(cellW * dCfg.fontRatio));
+  const fontSize = Math.max(6, Math.round(cellW * dCfg.fontRatio));
   ctx.font = `700 ${fontSize}px "JetBrains Mono", ui-monospace, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -204,37 +214,32 @@ export function drawMatrixCodeComposite(
   for (let row = 0; row < rows; row++) {
     const cy = (row + 0.5) * cellH;
     for (let col = 0; col < cols; col++) {
-      const { glyph, rainIntensity, isHead } = sampleMatrixCell(
-        col,
-        row,
-        rows,
-        elapsedMatrixSec
-      );
+      const idx = row * cols + col;
+      const luma = lumaGrid[idx];
+      const edge = edgeGrid[idx];
 
-      let lumaNorm = 0.25;
-      if (rgba) {
-        const p = (row * cols + col) * 4;
-        const luma = (0.299 * rgba[p] + 0.587 * rgba[p + 1] + 0.114 * rgba[p + 2]) / 255;
-        lumaNorm = Math.pow(luma, vCfg.contrastGamma);
-      }
-
-      const energy = Math.min(
-        1,
-        rainIntensity * vCfg.rainWeight + lumaNorm * vCfg.lumaWeight
-      );
-
-      if (energy < 0.08) {
+      // 輪郭エッジ＋明暗でコードの明るさを決め、暗い背景は真っ黒に残す
+      const baseSignal = Math.min(1, edge * vCfg.edgeBoost + luma * vCfg.lumaWeight);
+      if (baseSignal < vCfg.floorCutoff) {
         continue;
       }
 
-      if (isHead && energy > 0.55) {
-        ctx.fillStyle = `rgba(210, 255, 224, ${Math.min(1, energy + 0.15).toFixed(2)})`;
+      const { glyph, rainIntensity } = sampleMatrixCell(col, row, rows, elapsedMatrixSec);
+      const shimmer = 0.78 + rainIntensity * 0.28;
+      const energy = Math.min(1, baseSignal * shimmer);
+
+      if (edge > 0.28 || energy > 0.82) {
+        // 輪郭線や強いハイライトは白みがかった鮮やかなネオン緑でくっきり描く
+        const whiteMix = Math.min(1, Math.max(0, (energy - 0.65) * 2.2));
+        const r = Math.round(40 + whiteMix * 175);
+        const g = 255;
+        const b = Math.round(90 + whiteMix * 140);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       } else {
-        const g = Math.round(70 + energy * 185);
-        const r = Math.round(energy > 0.72 ? (energy - 0.72) * 210 : 4);
-        const b = Math.round(14 + energy * 76);
-        const alpha = Math.min(1, 0.22 + energy * 0.78).toFixed(2);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        const g = Math.round(75 + energy * 170);
+        const b = Math.round(18 + energy * 62);
+        const alpha = Math.min(1, 0.28 + energy * 0.72).toFixed(2);
+        ctx.fillStyle = `rgba(8, ${g}, ${b}, ${alpha})`;
       }
 
       ctx.fillText(glyph, (col + 0.5) * cellW, cy);

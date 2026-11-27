@@ -941,7 +941,7 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
       drawMatrixCodeComposite(ctx, element, crop, width, height, localSec, {
         triggerSec: mediaEntry?.matrixTriggerSec ?? 2.0,
         density: mediaEntry?.matrixDensity || 'standard',
-        visibility: mediaEntry?.matrixVisibility || 'balanced',
+        visibility: mediaEntry?.matrixVisibility || 'silhouette',
       });
     } else {
       // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ
