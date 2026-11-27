@@ -7,6 +7,7 @@ import {
   selectSupportedRecorderMimeType,
 } from '../../lib/video-engine.js';
 import { createRecordingChunkSink } from '../../lib/opfs-chunk-sink.js';
+import { exportTimelineWithWebCodecs } from '../../lib/webcodecs-exporter.js';
 
 async function acquireScreenWakeLock() {
   if (typeof navigator === 'undefined' || typeof navigator.wakeLock?.request !== 'function') {
@@ -101,11 +102,16 @@ export function initExporterSection(container, template, state, resourcePool, be
     resultBox.innerHTML = '';
 
     const baseMimeType = selectSupportedRecorderMimeType(false);
-    if (baseMimeType === null || typeof HTMLCanvasElement.prototype.captureStream !== 'function') {
+    const hasWebCodecs =
+      typeof VideoEncoder === 'function' && typeof VideoFrame === 'function';
+    const hasMediaRecorder =
+      baseMimeType !== null && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+
+    if (!hasWebCodecs && !hasMediaRecorder) {
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `
         <p class="notice notice-error">
-          お使いのブラウザは動画書き出し機能（MediaRecorder / captureStream）に対応していません。最新の Safari または Chrome でお試しください。
+          お使いのブラウザは動画書き出し機能（WebCodecs / MediaRecorder）に対応していません。最新の Safari または Chrome でお試しください。
         </p>
       `;
       return;
@@ -118,14 +124,10 @@ export function initExporterSection(container, template, state, resourcePool, be
     const { width, height, fps } = computeSafeRenderDimensions(template.output, scale);
     const { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
 
-    // 書き出し専用のオフスクリーンCanvasを一時生成し、iOS Safariの間引きを防ぐため隠しホストへ接続する
+    // 書き出し専用のオフスクリーンCanvasを一時生成する（MediaRecorder経路時のみ隠しホストへ接続）
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = width;
     exportCanvas.height = height;
-    const hiddenHost = document.getElementById('hidden-media-host') || document.body;
-    exportCanvas.style.cssText =
-      'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
-    hiddenHost.appendChild(exportCanvas);
     const ctx = exportCanvas.getContext('2d', { alpha: false });
 
     let stream = null;
@@ -134,9 +136,10 @@ export function initExporterSection(container, template, state, resourcePool, be
     let wakeLock = null;
     let chunkSink = null;
     let finalized = false;
-    const primaryVideo = state.mediaByCutId[segments[0]?.cut.id]?.mediaType === 'video'
-      ? state.mediaByCutId[segments[0].cut.id].element
-      : null;
+    let usedWebCodecsEngine = false;
+    let storageMode = 'memory';
+    const primaryMediaEntry = state.mediaByCutId[segments[0]?.cut.id] || null;
+    const primaryVideo = primaryMediaEntry?.mediaType === 'video' ? primaryMediaEntry.element : null;
 
     try {
       if (activeChunkSink) {
@@ -145,69 +148,121 @@ export function initExporterSection(container, template, state, resourcePool, be
       }
 
       wakeLock = await acquireScreenWakeLock();
-      chunkSink = await createRecordingChunkSink(template.id);
 
-      await prepareVideosForStart(segments, state.mediaByCutId);
-      setProgress('カット合成中...', 12);
+      const wantsAudio = Boolean(canExportAudio && includeAudioCheckbox?.checked && primaryMediaEntry?.mediaType === 'video');
+      let outputBlob = null;
 
-      // 先頭カットが動画の場合、録画開始前に再生デコーダを立ち上げて冒頭コマ落ちを防ぐ
-      if (primaryVideo) {
-        await primaryVideo.play().catch(() => {});
-      }
+      if (hasWebCodecs) {
+        setProgress('高品質MP4エンジン準備中...', 10);
+        try {
+          const wcResult = await exportTimelineWithWebCodecs({
+            exportCanvas,
+            ctx,
+            segments,
+            totalDurationSec,
+            fps,
+            width,
+            height,
+            state,
+            templateId: template.id,
+            wantsAudio,
+            primaryVideoEntry: primaryMediaEntry,
+            onProgress: (ratio) => {
+              setProgress('フレーム単位でMP4合成中...', 12 + ratio * 78);
+            },
+          });
 
-      const canvasStream = exportCanvas.captureStream(fps);
-      const tracks = [...canvasStream.getVideoTracks()];
-
-      const wantsAudio = Boolean(canExportAudio && includeAudioCheckbox?.checked && primaryVideo);
-      if (wantsAudio) {
-        const audioTrackResult = await attachVideoAudioTrack(primaryVideo);
-        if (audioTrackResult) {
-          tracks.push(audioTrackResult.track);
-          audioContextToResume = audioTrackResult.audioCtx;
-          exportedWithAudio = true;
-          primaryVideo.muted = false;
+          if (wcResult?.supported && wcResult.blob) {
+            setProgress('MP4ファイル生成中...', 94);
+            outputBlob = wcResult.blob;
+            exportedWithAudio = wcResult.exportedWithAudio;
+            storageMode = wcResult.storageMode || 'memory';
+            usedWebCodecsEngine = true;
+            activeChunkSink = { cleanup: wcResult.cleanup };
+            finalized = true;
+          }
+        } catch (wcError) {
+          if (!hasMediaRecorder) {
+            throw wcError;
+          }
+          // 端末のWebCodecs固有エラー時は互換MediaRecorder経路へフォールバックする
         }
       }
 
-      stream = new MediaStream(tracks);
-      const mimeType = selectSupportedRecorderMimeType(exportedWithAudio) ?? baseMimeType;
-      const videoBitsPerSecond = computeAdaptiveVideoBitrate(totalDurationSec, width);
-      const recorderOptions = mimeType
-        ? { mimeType, videoBitsPerSecond }
-        : { videoBitsPerSecond };
-      const recorder = new MediaRecorder(stream, recorderOptions);
+      if (!outputBlob) {
+        if (!hasMediaRecorder) {
+          throw new Error('このブラウザでは動画のハードウェア書き出しに対応できませんでした。最新の Safari または Chrome でお試しください。');
+        }
 
-      const recordingDone = new Promise((resolve, reject) => {
-        recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            chunkSink.append(event.data);
+        // iOS SafariのMediaRecorder経路では表示中DOM未接続だと間引かれるため隠しホストへ接続する
+        const hiddenHost = document.getElementById('hidden-media-host') || document.body;
+        exportCanvas.style.cssText =
+          'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+        hiddenHost.appendChild(exportCanvas);
+
+        chunkSink = await createRecordingChunkSink(template.id);
+        await prepareVideosForStart(segments, state.mediaByCutId);
+        setProgress('カット合成中...', 12);
+
+        // 先頭カットが動画の場合、録画開始前に再生デコーダを立ち上げて冒頭コマ落ちを防ぐ
+        if (primaryVideo) {
+          await primaryVideo.play().catch(() => {});
+        }
+
+        const canvasStream = exportCanvas.captureStream(fps);
+        const tracks = [...canvasStream.getVideoTracks()];
+
+        if (wantsAudio && primaryVideo) {
+          const audioTrackResult = await attachVideoAudioTrack(primaryVideo);
+          if (audioTrackResult) {
+            tracks.push(audioTrackResult.track);
+            audioContextToResume = audioTrackResult.audioCtx;
+            exportedWithAudio = true;
+            primaryVideo.muted = false;
           }
-        };
-        recorder.onerror = () => {
-          reject(new Error('動画の録画処理中にエラーが発生しました。軽量モード（720×1280）でお試しください。'));
-        };
-        recorder.onstop = async () => {
-          try {
-            const finalType = recorder.mimeType || mimeType || 'video/webm';
-            const blob = await chunkSink.finalize(finalType);
-            resolve(blob);
-          } catch (finalizeError) {
-            reject(finalizeError);
-          }
-        };
-      });
+        }
 
-      // 長尺動画でもOPFSへ滑らかに逐次フラッシュできるよう1秒間隔でチャンクを受け取る
-      recorder.start(1000);
-      await runTimelineRecording(ctx, segments, totalDurationSec, fps, width, height, state, (ratio) => {
-        setProgress('カット合成中...', 12 + ratio * 76);
-      });
+        stream = new MediaStream(tracks);
+        const mimeType = selectSupportedRecorderMimeType(exportedWithAudio) ?? baseMimeType;
+        const videoBitsPerSecond = computeAdaptiveVideoBitrate(totalDurationSec, width);
+        const recorderOptions = mimeType
+          ? { mimeType, videoBitsPerSecond }
+          : { videoBitsPerSecond };
+        const recorder = new MediaRecorder(stream, recorderOptions);
 
-      setProgress('動画ファイル生成中...', 92);
-      recorder.stop();
-      const outputBlob = await recordingDone;
-      finalized = true;
-      activeChunkSink = chunkSink;
+        const recordingDone = new Promise((resolve, reject) => {
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              chunkSink.append(event.data);
+            }
+          };
+          recorder.onerror = () => {
+            reject(new Error('動画の録画処理中にエラーが発生しました。軽量モード（720×1280）でお試しください。'));
+          };
+          recorder.onstop = async () => {
+            try {
+              const finalType = recorder.mimeType || mimeType || 'video/webm';
+              const blob = await chunkSink.finalize(finalType);
+              resolve(blob);
+            } catch (finalizeError) {
+              reject(finalizeError);
+            }
+          };
+        });
+
+        // 長尺動画でもOPFSへ滑らかに逐次フラッシュできるよう1秒間隔でチャンクを受け取る
+        recorder.start(1000);
+        await runTimelineRecording(ctx, segments, totalDurationSec, fps, width, height, state, (ratio) => {
+          setProgress('カット合成中...', 12 + ratio * 76);
+        });
+
+        setProgress('動画ファイル生成中...', 92);
+        recorder.stop();
+        outputBlob = await recordingDone;
+        finalized = true;
+        storageMode = chunkSink.mode;
+        activeChunkSink = chunkSink;
+      }
 
       if (activeDownloadUrl) {
         resourcePool.revokeUrl(activeDownloadUrl);
@@ -218,7 +273,10 @@ export function initExporterSection(container, template, state, resourcePool, be
       const ext = isMp4 ? 'mp4' : 'webm';
       const fileName = `Auto-video-edit_${template.id}.${ext}`;
       const audioLabel = exportedWithAudio ? '音声あり' : '無音';
-      const opfsLabel = chunkSink.mode === 'opfs' ? ' / OPFS省メモリ保存' : '';
+      const engineLabel = usedWebCodecsEngine
+        ? ` / 高品質オフラインMP4・${fps}fps固定`
+        : ' / 互換録画モード';
+      const opfsLabel = storageMode === 'opfs' ? ' / OPFS省メモリ保存' : '';
       const shareType = outputBlob.type || (isMp4 ? 'video/mp4' : 'video/webm');
 
       let canShareToPhotos = false;
@@ -236,7 +294,7 @@ export function initExporterSection(container, template, state, resourcePool, be
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `
         <p class="notice notice-ok">
-          ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒${opfsLabel}）の書き出しが完了しました。
+          ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒${engineLabel}${opfsLabel}）の書き出しが完了しました。
           ${isMp4 ? '' : '（※このブラウザはMP4直接出力非対応のため WebM 形式で保存されました。Safari等ではMP4で保存されます）'}
         </p>
         <div class="export-result-actions">

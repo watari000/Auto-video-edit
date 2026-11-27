@@ -167,6 +167,7 @@ export async function inspectMediaFile(file, requiredDurationSec, resourcePool) 
       return {
         mediaType: 'image',
         fileName: file.name,
+        file,
         width,
         height,
         durationSec: requiredDurationSec,
@@ -196,6 +197,7 @@ export async function inspectMediaFile(file, requiredDurationSec, resourcePool) 
     return {
       mediaType: 'video',
       fileName: file.name,
+      file,
       width,
       height,
       durationSec,

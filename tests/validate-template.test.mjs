@@ -29,6 +29,11 @@ import {
   sampleEqualizerBarsAt,
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { createRecordingChunkSink } from '../apps/user-editor/lib/opfs-chunk-sink.js';
+import {
+  buildOfflineFramePlan,
+  computeDecodeCanvasMaxSize,
+  shiftAudioPacketTimestamp,
+} from '../apps/user-editor/lib/webcodecs-exporter.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 import { APP_UPDATED_AT, APP_VERSION } from '../apps/user-editor/src/version.js';
 
@@ -415,4 +420,57 @@ test('apps/user-editor version metadata matches index.html badge and cache-busti
     html.includes(`./src/main.js?v=${APP_VERSION.slice(1)}`),
     'Expected cache-busting query on main.js in index.html to match APP_VERSION'
   );
+});
+
+test('webcodecs-exporter helpers build exact 30fps plans, shift audio timestamps, and cap 4K decode size', async () => {
+  const { segments } = buildTimelineSegments([
+    { id: 'c1', durationSec: 1.0 },
+    { id: 'c2', durationSec: 2.0 },
+  ]);
+  const plan = buildOfflineFramePlan(segments, 30);
+  assert.equal(plan.fps, 30);
+  assert.equal(plan.totalFrames, 90);
+  assert.equal(plan.groups.length, 2);
+  assert.equal(plan.groups[0].cutId ?? plan.groups[0].segment.cut.id, 'c1');
+  assert.equal(plan.groups[0].frames.length, 30);
+  assert.equal(plan.groups[1].frames.length, 60);
+  assert.equal(plan.frames[0].timestampSec, 0);
+  assert.ok(Math.abs(plan.frames[89].timestampSec - 89 / 30) < 1e-9);
+
+  assert.deepEqual(shiftAudioPacketTimestamp(1.0, 0.02, 2.0, 5.0), {
+    include: false,
+    done: false,
+  });
+  assert.deepEqual(shiftAudioPacketTimestamp(2.5, 0.02, 2.0, 5.0), {
+    include: true,
+    done: false,
+    shiftedTimestamp: 0.5,
+  });
+  assert.deepEqual(shiftAudioPacketTimestamp(7.0, 0.02, 2.0, 5.0), {
+    include: false,
+    done: true,
+  });
+
+  assert.deepEqual(computeDecodeCanvasMaxSize(1080, 1920), {});
+  assert.deepEqual(computeDecodeCanvasMaxSize(2160, 3840), { height: 1920 });
+  assert.deepEqual(computeDecodeCanvasMaxSize(3840, 2160), { width: 1920 });
+
+  const mb = await import('../apps/user-editor/vendor/mediabunny.min.mjs');
+  for (const symbol of [
+    'Output',
+    'Mp4OutputFormat',
+    'CanvasSource',
+    'BufferTarget',
+    'StreamTarget',
+    'Input',
+    'BlobSource',
+    'CanvasSink',
+    'EncodedPacketSink',
+    'EncodedAudioPacketSource',
+    'EncodedPacket',
+    'ALL_FORMATS',
+    'canEncodeVideo',
+  ]) {
+    assert.ok(mb[symbol], `Expected vendored mediabunny.min.mjs to export ${symbol}`);
+  }
 });

@@ -950,8 +950,9 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
     const visualStyle = mediaEntry?.visualStyle || 'backlight';
     const hasAnalyzedBeats = Boolean(mediaEntry?.beatAnalysis?.envelope?.length);
     // 再生・書き出し中の音とズレないよう、実際のvideo再生時刻を優先して主旋律強度を参照する
-    const actualVideoTime =
-      mediaEntry?.mediaType === 'video' && Number.isFinite(mediaEntry.element?.currentTime)
+    const actualVideoTime = Number.isFinite(mediaEntry?.overrideVideoTimeSec)
+      ? mediaEntry.overrideVideoTimeSec
+      : mediaEntry?.mediaType === 'video' && Number.isFinite(mediaEntry.element?.currentTime)
         ? mediaEntry.element.currentTime
         : (mediaEntry?.trimStartSec || 0) + localSec;
 
