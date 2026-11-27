@@ -48,8 +48,8 @@
     },
     "inputMode": {
       "type": "string",
-      "enum": ["multi-clip", "beat-sync-video", "bizarre-shift"],
-      "description": "素材入力モード（複数カット選択 / ダンス動画ビート同期 / 被写体異色カラーシフト）"
+      "enum": ["multi-clip", "beat-sync-video", "bizarre-shift", "matrix-code"],
+      "description": "素材入力モード（複数カット選択 / ダンス動画ビート同期 / 被写体異色カラーシフト / マトリックスコード転換）"
     },
     "allowSourceAudio": {
       "type": "boolean",
@@ -251,7 +251,7 @@
           "properties": {
             "motion": {
               "type": "string",
-              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-glow", "bizarre-shift"]
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-glow", "bizarre-shift", "matrix-code"]
             },
             "transitionIn": {
               "type": "string",

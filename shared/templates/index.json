@@ -102,5 +102,18 @@
     "filterTag": "SUBJECT SHIFT",
     "templatePath": "./sample-bizarre-shift-08/template.json",
     "coverAsset": "./sample-bizarre-shift-08/guide-assets/cut-01.svg"
+  },
+  {
+    "id": "sample-matrix-code-09",
+    "title": "Matrix Code World・黒×緑デジタルコード転換",
+    "category": "CYBER / CODE RAIN",
+    "summary": "2秒後に一瞬「ザザッ」と画面が乱れた直後、黒と緑のデジタルコードだけが流れ落ちる世界へ切り替わります。",
+    "durationSec": 6.0,
+    "cutCount": 1,
+    "aspectRatio": "9:16",
+    "bpmLabel": "2.0s GLITCH",
+    "filterTag": "MATRIX CODE",
+    "templatePath": "./sample-matrix-code-09/template.json",
+    "coverAsset": "./sample-matrix-code-09/guide-assets/cut-01.svg"
   }
 ]

@@ -4,6 +4,7 @@ import {
   sampleEqualizerBarsAt,
 } from './audio-beat-analyzer.js';
 import { drawBizarreShiftComposite } from './bizarre-shift-engine.js';
+import { drawMatrixCodeComposite } from './matrix-code-engine.js';
 
 const BACKLIGHT_COLOR_MAP = {
   'warm-gold': [245, 198, 128],
@@ -927,6 +928,20 @@ export function drawCutFrame(ctx, cut, mediaEntry, localSec, width, height, text
         palette: mediaEntry?.bizarrePalette || 'golden-bizarre',
         touchStyle: mediaEntry?.bizarreTouch || 'color-only',
         subjectMask: mediaEntry?.subjectMask || null,
+      });
+    } else if (cut.effect?.motion === 'matrix-code') {
+      const crop = computeCoverCropRect(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        'none',
+        progress
+      );
+      drawMatrixCodeComposite(ctx, element, crop, width, height, localSec, {
+        triggerSec: mediaEntry?.matrixTriggerSec ?? 2.0,
+        density: mediaEntry?.matrixDensity || 'standard',
+        visibility: mediaEntry?.matrixVisibility || 'balanced',
       });
     } else {
       // beat-glow時は映像を揺らさず固定し、画面酔いを防ぐ

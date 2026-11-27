@@ -1,5 +1,10 @@
 const ALLOWED_STATUSES = new Set(['draft', 'review', 'published']);
-const ALLOWED_INPUT_MODES = new Set(['multi-clip', 'beat-sync-video', 'bizarre-shift']);
+const ALLOWED_INPUT_MODES = new Set([
+  'multi-clip',
+  'beat-sync-video',
+  'bizarre-shift',
+  'matrix-code',
+]);
 const ALLOWED_ASPECT_RATIOS = new Set(['9:16', '1:1', '4:5']);
 const ALLOWED_MEDIA_TYPES = new Set(['video', 'image']);
 const ALLOWED_MOTIONS = new Set([
@@ -10,6 +15,7 @@ const ALLOWED_MOTIONS = new Set([
   'pan-right',
   'beat-glow',
   'bizarre-shift',
+  'matrix-code',
 ]);
 const ALLOWED_TRANSITIONS = new Set(['cut', 'fade', 'sketch-to-reality', 'flash']);
 const ALLOWED_SKETCH_STYLES = new Set(['ink-paper', 'chalk-dark', 'pencil-warm']);

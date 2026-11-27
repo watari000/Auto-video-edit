@@ -23,6 +23,11 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
     return;
   }
 
+  if (template.inputMode === 'matrix-code') {
+    renderMatrixCodeTrimmer(container, template, state, resourcePool, onStateChange);
+    return;
+  }
+
   const batchBar = document.createElement('div');
   batchBar.className = 'batch-ingest-bar';
   batchBar.innerHTML = `
@@ -658,6 +663,254 @@ function renderBizarreControls(controlsBox, cut, mediaEntry, bizarreMeta, onStat
 
   touchSelect.addEventListener('change', () => {
     mediaEntry.bizarreTouch = touchSelect.value;
+    onStateChange();
+  });
+
+  syncLabels();
+}
+
+function renderMatrixCodeTrimmer(container, template, state, resourcePool, onStateChange) {
+  const cut = template.cuts[0];
+  if (!cut) {
+    return;
+  }
+
+  const card = document.createElement('article');
+  card.className = 'cut-row';
+  card.innerHTML = `
+    <div class="cut-row-head">
+      <div class="cut-row-title-wrap">
+        <span class="cut-index">CODE</span>
+        <div>
+          <h3 class="cut-row-title">${escapeHtml(cut.label)}</h3>
+          <p class="cut-duration-meta" data-role="matrix-meta">DURATION ${cut.durationSec.toFixed(1)}S // 2.0S MATRIX WORLD</p>
+        </div>
+      </div>
+      <span class="status-indicator" data-role="status-badge">WAITING</span>
+    </div>
+  `;
+
+  const fileLabel = document.createElement('label');
+  fileLabel.className = 'upload-trigger';
+  const labelTextNode = document.createTextNode('動画または写真を選ぶ（2秒後に黒×緑コード世界へ）');
+  fileLabel.appendChild(labelTextNode);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'video/*,image/*';
+  fileInput.className = 'sr-only';
+  fileLabel.appendChild(fileInput);
+
+  const feedbackBox = document.createElement('div');
+  feedbackBox.className = 'feedback-area';
+
+  const controlsBox = document.createElement('div');
+  controlsBox.className = 'beat-controls-grid hidden';
+
+  card.appendChild(fileLabel);
+  card.appendChild(feedbackBox);
+  card.appendChild(controlsBox);
+  container.appendChild(card);
+
+  const statusBadge = card.querySelector('[data-role="status-badge"]');
+  const matrixMeta = card.querySelector('[data-role="matrix-meta"]');
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    statusBadge.textContent = 'ANALYZING...';
+    statusBadge.className = 'status-indicator is-loading';
+    feedbackBox.innerHTML = '';
+
+    try {
+      const previousEntry = state.mediaByCutId[cut.id];
+      const inspected = await inspectMediaFile(file, cut.durationSec, resourcePool);
+
+      if (previousEntry?.element) {
+        resourcePool.releaseElement?.(previousEntry.element);
+      }
+      if (previousEntry?.objectUrl) {
+        resourcePool.revokeUrl(previousEntry.objectUrl);
+      }
+
+      if (inspected.mediaType === 'video') {
+        const videoDur = Math.max(0.5, inspected.durationSec || 6);
+        cut.durationSec = Math.max(
+          Math.min(2.5, videoDur),
+          Number(Math.min(15.0, videoDur).toFixed(1))
+        );
+      } else {
+        cut.durationSec = 6.0;
+      }
+
+      inspected.matrixTriggerSec = Math.min(2.0, Math.max(0.5, cut.durationSec - 0.5));
+      inspected.matrixDensity = 'standard';
+      inspected.matrixVisibility = 'balanced';
+      inspected.trimStartSec = 0;
+      state.mediaByCutId[cut.id] = inspected;
+
+      statusBadge.textContent = inspected.mediaType === 'video' ? 'VIDEO READY' : 'PHOTO READY';
+      statusBadge.className = 'status-indicator is-ready';
+      labelTextNode.textContent = `素材を変更する（${inspected.fileName}）`;
+
+      renderPrecheckMessages(feedbackBox, inspected.warnings);
+      feedbackBox.insertAdjacentHTML(
+        'afterbegin',
+        '<p class="notice notice-ok">設定完了！2秒後に一瞬「ザザッ」と乱れて、黒と緑のコードだけの世界へ切り替わります。</p>'
+      );
+
+      renderMatrixCodeControls(controlsBox, cut, inspected, matrixMeta, onStateChange);
+      onStateChange();
+    } catch (error) {
+      statusBadge.textContent = 'ERROR';
+      statusBadge.className = 'status-indicator is-error';
+      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
+    }
+  });
+}
+
+function renderMatrixCodeControls(controlsBox, cut, mediaEntry, matrixMeta, onStateChange) {
+  controlsBox.classList.remove('hidden');
+  const isVideo = mediaEntry.mediaType === 'video';
+  const totalMediaDur = isVideo ? Math.max(0.5, mediaEntry.durationSec || 6) : 15.0;
+  const maxDur = isVideo
+    ? Math.max(0.5, Math.floor(Math.min(60.0, totalMediaDur) * 10) / 10)
+    : 15.0;
+  const minDur = Math.min(2.5, maxDur);
+  const initialMaxStart = isVideo
+    ? Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10)
+    : 0;
+
+  controlsBox.innerHTML = `
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-track" aria-hidden="true">
+              <div class="trim-window" id="matrix-trim-window"></div>
+            </div>
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="matrix-duration-label">使う長さ：${cut.durationSec.toFixed(1)}秒</span>
+      </div>
+      <input type="range" id="matrix-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.1" value="${cut.durationSec}" aria-label="動画の長さ調整" />
+    </div>
+    ${
+      isVideo
+        ? `<div class="beat-control-row">
+            <div class="trim-header">
+              <span class="trim-label" id="matrix-start-label">開始位置：0.0秒 〜 ${cut.durationSec.toFixed(1)}秒</span>
+            </div>
+            <input type="range" id="matrix-start-slider" class="trim-slider" min="0" max="${initialMaxStart.toFixed(1)}" step="0.1" value="0" aria-label="切り出し開始位置" />
+          </div>`
+        : ''
+    }
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="matrix-trigger-label">切替タイミング：${mediaEntry.matrixTriggerSec.toFixed(1)}秒後</span>
+      </div>
+      <input type="range" id="matrix-trigger-slider" class="trim-slider" min="0.5" max="${Math.max(0.5, cut.durationSec - 0.5).toFixed(1)}" step="0.1" value="${mediaEntry.matrixTriggerSec.toFixed(1)}" aria-label="コード世界への切替タイミング" />
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="matrix-density-select">コード文字の細かさ</label>
+      <select id="matrix-density-select" class="quality-select">
+        <option value="fine">細かめ（高精細シルエット）</option>
+        <option value="standard" selected>標準（バランス重視・おすすめ）</option>
+        <option value="bold">大きめ（文字の迫力重視）</option>
+      </select>
+    </div>
+    <div class="beat-control-row">
+      <label class="trim-label" for="matrix-visibility-select">元映像の浮かび上がり方</label>
+      <select id="matrix-visibility-select" class="quality-select">
+        <option value="silhouette">シルエットくっきり</option>
+        <option value="balanced" selected>標準バランス（コードの雨＋映像）</option>
+        <option value="rain">コードの雨メイン（サイバー重視）</option>
+      </select>
+    </div>
+  `;
+
+  const trimWindow = controlsBox.querySelector('#matrix-trim-window');
+  const durationSlider = controlsBox.querySelector('#matrix-duration-slider');
+  const durationLabel = controlsBox.querySelector('#matrix-duration-label');
+  const startSlider = controlsBox.querySelector('#matrix-start-slider');
+  const startLabel = controlsBox.querySelector('#matrix-start-label');
+  const triggerSlider = controlsBox.querySelector('#matrix-trigger-slider');
+  const triggerLabel = controlsBox.querySelector('#matrix-trigger-label');
+  const densitySelect = controlsBox.querySelector('#matrix-density-select');
+  const visibilitySelect = controlsBox.querySelector('#matrix-visibility-select');
+
+  function syncLabels() {
+    durationLabel.textContent = isVideo
+      ? `使う長さ：${cut.durationSec.toFixed(1)}秒（最大 ${maxDur.toFixed(1)}秒 / 元動画 ${totalMediaDur.toFixed(1)}秒）`
+      : `再生時間：${cut.durationSec.toFixed(1)}秒（写真）`;
+
+    if (isVideo && startSlider && startLabel && trimWindow) {
+      const start = mediaEntry.trimStartSec || 0;
+      const end = Math.min(totalMediaDur, start + cut.durationSec);
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.disabled = maxStart <= 0.05;
+      startLabel.textContent =
+        maxStart <= 0.05
+          ? `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒（全体を使用中）`
+          : `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+
+      const leftPct = Math.min(100, (start / totalMediaDur) * 100);
+      const widthPct = Math.min(100 - leftPct, (cut.durationSec / totalMediaDur) * 100);
+      trimWindow.style.left = `${leftPct}%`;
+      trimWindow.style.width = `${widthPct}%`;
+    }
+
+    const trig = mediaEntry.matrixTriggerSec ?? 2.0;
+    triggerLabel.textContent = `切替タイミング：${trig.toFixed(1)}秒後（一瞬ザザッと乱れてコード世界へ）`;
+    matrixMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${trig.toFixed(1)}S MATRIX WORLD`;
+  }
+
+  durationSlider.addEventListener('input', () => {
+    cut.durationSec = Number(durationSlider.value);
+    if (isVideo && startSlider) {
+      const maxStart = Math.max(0, Math.floor((totalMediaDur - cut.durationSec) * 10) / 10);
+      startSlider.max = maxStart.toFixed(1);
+      if ((mediaEntry.trimStartSec || 0) > maxStart) {
+        mediaEntry.trimStartSec = maxStart;
+        startSlider.value = maxStart.toFixed(1);
+      }
+    }
+    const maxTrig = Math.max(0.5, Number((cut.durationSec - 0.5).toFixed(1)));
+    triggerSlider.max = maxTrig.toFixed(1);
+    if ((mediaEntry.matrixTriggerSec || 2.0) > maxTrig) {
+      mediaEntry.matrixTriggerSec = maxTrig;
+      triggerSlider.value = maxTrig.toFixed(1);
+    }
+    syncLabels();
+    onStateChange();
+  });
+
+  if (startSlider) {
+    startSlider.addEventListener('input', () => {
+      mediaEntry.trimStartSec = Number(startSlider.value);
+      syncLabels();
+      onStateChange();
+    });
+  }
+
+  triggerSlider.addEventListener('input', () => {
+    mediaEntry.matrixTriggerSec = Number(triggerSlider.value);
+    syncLabels();
+    onStateChange();
+  });
+
+  densitySelect.addEventListener('change', () => {
+    mediaEntry.matrixDensity = densitySelect.value;
+    onStateChange();
+  });
+
+  visibilitySelect.addEventListener('change', () => {
+    mediaEntry.matrixVisibility = visibilitySelect.value;
     onStateChange();
   });
 

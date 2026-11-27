@@ -47,6 +47,10 @@ import {
   computeDecodeCanvasMaxSize,
   shiftAudioPacketTimestamp,
 } from '../apps/user-editor/lib/webcodecs-exporter.js';
+import {
+  computeMatrixWorldState,
+  sampleMatrixCell,
+} from '../apps/user-editor/lib/matrix-code-engine.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 import { APP_UPDATED_AT, APP_VERSION } from '../apps/user-editor/src/version.js';
 
@@ -85,7 +89,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 8);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 9);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -119,6 +123,7 @@ test('shared/templates/index.json lists >= 7 valid templates with existing asset
   assert.equal(seenIds.has('sample-rapid-recap-06'), true);
   assert.equal(seenIds.has('sample-dance-beat-07'), true);
   assert.equal(seenIds.has('sample-bizarre-shift-08'), true);
+  assert.equal(seenIds.has('sample-matrix-code-09'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -573,4 +578,34 @@ test('sample-bizarre-shift-08 defaults source audio to OFF and bizarre-shift-eng
   assert.notDeepEqual(skinRgb, clothesRgb);
   assert.notDeepEqual(hairRgb, clothesRgb);
   assert.ok(PART_LIPS !== PART_EYES);
+});
+
+test('sample-matrix-code-09 defaults audio to OFF and matrix-code-engine transitions cleanly at 2.0s', async () => {
+  const raw = await fs.readFile(
+    path.join(REPO_ROOT, 'shared', 'templates', 'sample-matrix-code-09', 'template.json'),
+    'utf8'
+  );
+  const template = JSON.parse(raw);
+  assert.equal(template.inputMode, 'matrix-code');
+  assert.equal(template.allowSourceAudio, true);
+  assert.equal(template.defaultIncludeAudio, false);
+
+  const normal = computeMatrixWorldState(1.9, 2.0);
+  assert.equal(normal.phase, 'normal');
+  assert.equal(normal.matrixBlend, 0);
+
+  const glitch = computeMatrixWorldState(2.05, 2.0, 0.18);
+  assert.equal(glitch.phase, 'glitch');
+  assert.ok(glitch.glitchIntensity > 0);
+
+  const matrix = computeMatrixWorldState(2.3, 2.0, 0.18);
+  assert.equal(matrix.phase, 'matrix');
+  assert.equal(matrix.matrixBlend, 1);
+
+  const cellA = sampleMatrixCell(4, 10, 40, 0.5);
+  const cellB = sampleMatrixCell(4, 10, 40, 0.5);
+  assert.deepEqual(cellA, cellB);
+  assert.equal(typeof cellA.glyph, 'string');
+  assert.ok(cellA.glyph.length === 1);
+  assert.ok(cellA.rainIntensity >= 0 && cellA.rainIntensity <= 1);
 });

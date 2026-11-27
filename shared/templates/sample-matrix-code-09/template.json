@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-matrix-code-09",
+  "title": "Matrix Code World・黒×緑デジタルコード転換",
+  "description": "2秒後に一瞬「ザザッ」と画面が乱れたあと、黒と緑のデジタルコードだけが滝のように流れるサイバー世界へ切り替わり、元の映像が緑のコードの濃淡で浮かび上がります。",
+  "status": "published",
+  "inputMode": "matrix-code",
+  "allowSourceAudio": true,
+  "defaultIncludeAudio": false,
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "サイバー・エレクトロ／近未来サウンド（元動画音声のON/OFF切替可・初期OFF）",
+    "bpmRange": {
+      "min": 105,
+      "max": 140
+    },
+    "suggestedSearchKeywords": [
+      "cyberpunk glitch",
+      "matrix digital rain",
+      "dark synthwave"
+    ],
+    "note": "STEP 2でコードの細かさや元映像の浮かび上がり方・切替タイミングを調整でき、STEP 4では音声のON/OFF（初期OFF）を選んで書き出せます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "黒×緑コードワールド転換（2秒グリッチ）",
+      "acceptedMedia": ["video", "image"],
+      "durationSec": 6.0,
+      "shootingGuide": {
+        "shotType": "人物・ペット・街並みなど明暗差のある動画または写真",
+        "cameraMove": "通常撮影（前半2秒はそのままの色、2秒後にコード世界へ転換）",
+        "tips": "逆光や明るめの被写体・動きのある動画を選ぶと、黒×緑のコードの濃淡でシルエットがくっきり浮かび上がります。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "matrix-code",
+        "transitionIn": "cut",
+        "filter": "none"
+      },
+      "textOverlay": {
+        "defaultText": "",
+        "placeholder": "例：SYSTEM *OVERRIDE*（空欄なら文字なし）",
+        "maxLength": 30,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#4ade80"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T23:45:00+09:00",
+    "updatedAt": "2026-11-27T23:45:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "2.0秒一瞬グリッチ＋黒×緑デジタルコードレイン（元映像の輝度をコードの濃淡で表現）・音声ON/OFF（初期OFF）"
+  }
+}
