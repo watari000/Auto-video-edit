@@ -42,3 +42,4 @@
 ## 5. Git 運用ルール
 - ファイルの作成・編集とテスト検証が完了したら、そのまま自動でローカルコミットとリモートへの `git push` まで行う（GitHub Pages の公開内容も自動更新する）。
 - コミットメッセージは日本語で簡潔に変更内容を記載する。
+- Webアプリ（`apps/user-editor/` 等）を更新する際は、`apps/user-editor/src/version.js` と `apps/user-editor/index.html` のバージョン情報（例: `v1.1.0` → `v1.1.1`）を必ずインクリメントしてからコミット・push する。

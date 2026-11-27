@@ -59,6 +59,20 @@
   text-transform: uppercase;
 }
 
+.version-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent-champagne);
+  background: var(--bg-panel);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .nav-steps {
   display: none;
   align-items: center;

@@ -30,6 +30,7 @@ import {
 } from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { createRecordingChunkSink } from '../apps/user-editor/lib/opfs-chunk-sink.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
+import { APP_UPDATED_AT, APP_VERSION } from '../apps/user-editor/src/version.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -400,4 +401,18 @@ test('selectSupportedRecorderMimeType selects H.264+AAC MP4 when audio is includ
       globalThis.MediaRecorder = originalMediaRecorder;
     }
   }
+});
+
+test('apps/user-editor version metadata matches index.html badge and cache-busting query', async () => {
+  assert.match(APP_VERSION, /^v\d+\.\d+\.\d+$/);
+  const html = await fs.readFile(path.join(REPO_ROOT, 'apps/user-editor/index.html'), 'utf8');
+  assert.ok(html.includes(`>${APP_VERSION}<`), 'Expected header badge in index.html to match APP_VERSION');
+  assert.ok(
+    html.includes(`VERSION: ${APP_VERSION} (${APP_UPDATED_AT})`),
+    'Expected footer version text in index.html to match APP_VERSION and APP_UPDATED_AT'
+  );
+  assert.ok(
+    html.includes(`./src/main.js?v=${APP_VERSION.slice(1)}`),
+    'Expected cache-busting query on main.js in index.html to match APP_VERSION'
+  );
 });

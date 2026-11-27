@@ -5,6 +5,7 @@ import { renderGuideSection } from './guide/guide-view.js';
 import { renderTrimmerSection } from './trimmer/slide-trimmer.js';
 import { initPreviewSection } from './preview/canvas-preview.js';
 import { initExporterSection } from './exporter/video-exporter.js';
+import { APP_VERSION, APP_UPDATED_AT } from './version.js';
 
 const CATALOG_URL = '../../shared/templates/index.json';
 const THEME_STORAGE_KEY = 'kinetic-atelier-theme';
@@ -48,6 +49,15 @@ function parseTemplateIdFromHash(hashString) {
 
 async function bootstrap() {
   initThemeToggle();
+
+  const versionBadge = document.getElementById('app-version-badge');
+  if (versionBadge) {
+    versionBadge.textContent = APP_VERSION;
+  }
+  const footerVersion = document.getElementById('app-footer-version');
+  if (footerVersion) {
+    footerVersion.textContent = `VERSION: ${APP_VERSION} (${APP_UPDATED_AT})`;
+  }
 
   const viewGallery = document.getElementById('view-gallery');
   const viewEditor = document.getElementById('view-editor');
