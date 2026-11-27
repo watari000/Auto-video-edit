@@ -1,7 +1,8 @@
 const ALLOWED_STATUSES = new Set(['draft', 'review', 'published']);
+const ALLOWED_INPUT_MODES = new Set(['multi-clip', 'beat-sync-video']);
 const ALLOWED_ASPECT_RATIOS = new Set(['9:16', '1:1', '4:5']);
 const ALLOWED_MEDIA_TYPES = new Set(['video', 'image']);
-const ALLOWED_MOTIONS = new Set(['none', 'zoom-in', 'zoom-out', 'pan-left', 'pan-right']);
+const ALLOWED_MOTIONS = new Set(['none', 'zoom-in', 'zoom-out', 'pan-left', 'pan-right', 'beat-shake']);
 const ALLOWED_TRANSITIONS = new Set(['cut', 'fade', 'sketch-to-reality', 'flash']);
 const ALLOWED_SKETCH_STYLES = new Set(['ink-paper', 'chalk-dark', 'pencil-warm']);
 const ALLOWED_FILTERS = new Set(['none', 'warm', 'cool', 'vintage', 'vivid']);
@@ -42,6 +43,14 @@ export function validateTemplateData(data) {
 
   if (!ALLOWED_STATUSES.has(data.status)) {
     errors.push('status は draft / review / published のいずれかである必要があります。');
+  }
+
+  if (data.inputMode !== undefined && !ALLOWED_INPUT_MODES.has(data.inputMode)) {
+    errors.push('inputMode は multi-clip / beat-sync-video のいずれかである必要があります。');
+  }
+
+  if (data.allowSourceAudio !== undefined && typeof data.allowSourceAudio !== 'boolean') {
+    errors.push('allowSourceAudio は真偽値である必要があります。');
   }
 
   if (!ALLOWED_ASPECT_RATIOS.has(data.aspectRatio)) {

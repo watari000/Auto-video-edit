@@ -50,7 +50,7 @@ export function renderGuideSection(container, template) {
           <span class="spec-tag is-accent">${escapeHtml(template.aspectRatio)} VERTICAL</span>
           <span class="spec-tag">${template.cuts.length} CUTS / ${totalSec.toFixed(1)} SEC</span>
           <span class="spec-tag">${template.output.width}×${template.output.height} / ${template.output.fps}FPS</span>
-          <span class="spec-tag">MUTED MASTER</span>
+          <span class="spec-tag${template.allowSourceAudio ? ' is-accent' : ''}">${template.allowSourceAudio ? 'SOURCE AUDIO OK' : 'MUTED MASTER'}</span>
         </div>
         <h3 class="template-title">${escapeHtml(template.title)}</h3>
         <p class="template-desc">${escapeHtml(template.description)}</p>

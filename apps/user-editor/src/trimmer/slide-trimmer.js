@@ -1,10 +1,16 @@
 import { inspectMediaFile } from '../precheck/media-precheck.js';
+import { analyzeVideoFileBeats } from '../../lib/audio-beat-analyzer.js';
 
 /**
  * STEP 02：複数素材の一括配置、カットごとの素材選択、プリチェック案内、スライドトリミングを提供する。
  */
 export function renderTrimmerSection(container, template, state, resourcePool, onStateChange) {
   container.innerHTML = '';
+
+  if (template.inputMode === 'beat-sync-video') {
+    renderBeatSyncTrimmer(container, template, state, resourcePool, onStateChange);
+    return;
+  }
 
   const batchBar = document.createElement('div');
   batchBar.className = 'batch-ingest-bar';
@@ -148,6 +154,176 @@ export function renderTrimmerSection(container, template, state, resourcePool, o
   });
 
   container.appendChild(list);
+}
+
+function renderBeatSyncTrimmer(container, template, state, resourcePool, onStateChange) {
+  const cut = template.cuts[0];
+  if (!cut) {
+    return;
+  }
+
+  const card = document.createElement('article');
+  card.className = 'cut-row';
+  card.innerHTML = `
+    <div class="cut-row-head">
+      <div class="cut-row-title-wrap">
+        <span class="cut-index">BEAT</span>
+        <div>
+          <h3 class="cut-row-title">${escapeHtml(cut.label)}</h3>
+          <p class="cut-duration-meta" data-role="beat-meta">DURATION ${cut.durationSec.toFixed(1)}S // VIDEO AUDIO SYNC</p>
+        </div>
+      </div>
+      <span class="status-indicator" data-role="status-badge">WAITING</span>
+    </div>
+  `;
+
+  const fileLabel = document.createElement('label');
+  fileLabel.className = 'upload-trigger';
+  const labelTextNode = document.createTextNode('ダンス動画を選ぶ（音声ビート自動解析）');
+  fileLabel.appendChild(labelTextNode);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'video/*';
+  fileInput.className = 'sr-only';
+  fileLabel.appendChild(fileInput);
+
+  const feedbackBox = document.createElement('div');
+  feedbackBox.className = 'feedback-area';
+
+  const controlsBox = document.createElement('div');
+  controlsBox.className = 'beat-controls-grid hidden';
+
+  card.appendChild(fileLabel);
+  card.appendChild(feedbackBox);
+  card.appendChild(controlsBox);
+  container.appendChild(card);
+
+  const statusBadge = card.querySelector('[data-role="status-badge"]');
+  const beatMeta = card.querySelector('[data-role="beat-meta"]');
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    statusBadge.textContent = 'ANALYZING BEATS...';
+    statusBadge.className = 'status-indicator is-loading';
+    feedbackBox.innerHTML = '<p class="notice notice-tip">動画と音声ビートをブラウザ内で解析しています...</p>';
+
+    try {
+      const previousEntry = state.mediaByCutId[cut.id];
+      const [inspected, beatAnalysis] = await Promise.all([
+        inspectMediaFile(file, cut.durationSec, resourcePool),
+        analyzeVideoFileBeats(file),
+      ]);
+
+      if (previousEntry?.objectUrl) {
+        resourcePool.revokeUrl(previousEntry.objectUrl);
+      }
+
+      const maxVideoDur = Math.max(1.5, inspected.durationSec || 8);
+      const defaultDur = Number(Math.min(15.0, maxVideoDur).toFixed(1));
+      cut.durationSec = defaultDur;
+
+      inspected.beatAnalysis = beatAnalysis;
+      inspected.shakeIntensity = 0.6;
+      inspected.trimStartSec = 0;
+      state.mediaByCutId[cut.id] = inspected;
+
+      statusBadge.textContent = beatAnalysis.hasAudio ? 'BEAT READY' : 'VIDEO READY';
+      statusBadge.className = 'status-indicator is-ready';
+      labelTextNode.textContent = `動画を変更する（${inspected.fileName}）`;
+      beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${beatAnalysis.peakCount} BEATS DETECTED`;
+
+      const beatNotice = beatAnalysis.hasAudio
+        ? `<p class="notice notice-ok">音声から ${beatAnalysis.peakCount} 箇所のビートを検出しました！拍に合わせて画面がわずかに振動します。</p>`
+        : '<p class="notice notice-tip">音声トラックが検出できなかったため、標準リズムで軽い振動を適用します。</p>';
+
+      renderPrecheckMessages(feedbackBox, inspected.warnings);
+      feedbackBox.insertAdjacentHTML('afterbegin', beatNotice);
+
+      renderBeatControls(controlsBox, cut, inspected, beatMeta, onStateChange);
+      onStateChange();
+    } catch (error) {
+      statusBadge.textContent = 'ERROR';
+      statusBadge.className = 'status-indicator is-error';
+      feedbackBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
+    }
+  });
+}
+
+function renderBeatControls(controlsBox, cut, mediaEntry, beatMeta, onStateChange) {
+  controlsBox.classList.remove('hidden');
+  const videoDur = Math.max(1.5, mediaEntry.durationSec || 8);
+  const minDur = Math.min(2.0, Number(videoDur.toFixed(1)));
+  const maxDur = Math.max(minDur, Number(Math.min(30.0, videoDur).toFixed(1)));
+
+  controlsBox.innerHTML = `
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="beat-duration-label">使う長さ：${cut.durationSec.toFixed(1)}秒（全 ${videoDur.toFixed(1)}秒）</span>
+      </div>
+      <input type="range" id="beat-duration-slider" class="trim-slider" min="${minDur}" max="${maxDur}" step="0.5" value="${cut.durationSec}" aria-label="動画の長さ調整" />
+    </div>
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="beat-start-label">開始位置：0.0秒 〜 ${cut.durationSec.toFixed(1)}秒</span>
+      </div>
+      <input type="range" id="beat-start-slider" class="trim-slider" min="0" max="${Math.max(0, videoDur - cut.durationSec).toFixed(2)}" step="0.1" value="0" aria-label="切り出し開始位置" />
+    </div>
+    <div class="beat-control-row">
+      <div class="trim-header">
+        <span class="trim-label" id="beat-intensity-label">振動の強さ：標準（0.6）</span>
+      </div>
+      <input type="range" id="beat-intensity-slider" class="trim-slider" min="0.2" max="1.2" step="0.1" value="0.6" aria-label="ビート振動の強さ" />
+    </div>
+  `;
+
+  const durationSlider = controlsBox.querySelector('#beat-duration-slider');
+  const durationLabel = controlsBox.querySelector('#beat-duration-label');
+  const startSlider = controlsBox.querySelector('#beat-start-slider');
+  const startLabel = controlsBox.querySelector('#beat-start-label');
+  const intensitySlider = controlsBox.querySelector('#beat-intensity-slider');
+  const intensityLabel = controlsBox.querySelector('#beat-intensity-label');
+
+  function syncLabels() {
+    const start = mediaEntry.trimStartSec || 0;
+    const end = Math.min(videoDur, start + cut.durationSec);
+    durationLabel.textContent = `使う長さ：${cut.durationSec.toFixed(1)}秒（全 ${videoDur.toFixed(1)}秒）`;
+    startLabel.textContent = `開始位置：${start.toFixed(1)}秒 〜 ${end.toFixed(1)}秒`;
+    const val = mediaEntry.shakeIntensity ?? 0.6;
+    const tag = val <= 0.4 ? '控えめ' : val >= 0.9 ? '強め' : '標準';
+    intensityLabel.textContent = `振動の強さ：${tag}（${val.toFixed(1)}）`;
+    beatMeta.textContent = `DURATION ${cut.durationSec.toFixed(1)}S // ${mediaEntry.beatAnalysis?.peakCount || 0} BEATS DETECTED`;
+  }
+
+  durationSlider.addEventListener('input', () => {
+    cut.durationSec = Number(durationSlider.value);
+    const maxStart = Math.max(0, videoDur - cut.durationSec);
+    startSlider.max = maxStart.toFixed(2);
+    if ((mediaEntry.trimStartSec || 0) > maxStart) {
+      mediaEntry.trimStartSec = maxStart;
+      startSlider.value = maxStart.toFixed(2);
+    }
+    syncLabels();
+    onStateChange();
+  });
+
+  startSlider.addEventListener('input', () => {
+    mediaEntry.trimStartSec = Number(startSlider.value);
+    syncLabels();
+    onStateChange();
+  });
+
+  intensitySlider.addEventListener('input', () => {
+    mediaEntry.shakeIntensity = Number(intensitySlider.value);
+    syncLabels();
+    onStateChange();
+  });
+
+  syncLabels();
 }
 
 function renderPrecheckMessages(container, warnings) {

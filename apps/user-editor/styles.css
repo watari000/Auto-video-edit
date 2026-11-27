@@ -1062,6 +1062,40 @@
   gap: 8px;
 }
 
+.monitor-controls.has-audio {
+  grid-template-columns: 1fr auto auto;
+}
+
+.beat-controls-grid {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-subtle);
+  display: grid;
+  gap: 12px;
+}
+
+.beat-control-row {
+  display: grid;
+  gap: 6px;
+}
+
+.audio-export-toggle {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.audio-export-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-signal);
+}
+
 .timeline-scrub-row {
   display: grid;
   gap: 6px;

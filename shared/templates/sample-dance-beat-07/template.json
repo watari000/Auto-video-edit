@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-dance-beat-07",
+  "title": "Dance Beat Shake・音声ビート微振動",
+  "description": "ダンス動画を1本選ぶと、動画に含まれる音声のビート（拍）をブラウザ内で自動解析し、ビートに合わせて画面をわずかに振動させます。長さと揺れの強さも自由に調整でき、音ありのまま保存可能です。",
+  "status": "published",
+  "inputMode": "beat-sync-video",
+  "allowSourceAudio": true,
+  "aspectRatio": "9:16",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "muted": true
+  },
+  "audioGuide": {
+    "mood": "ダンス動画の元音声をそのまま使用（音あり／無音の切り替え可能）",
+    "bpmRange": {
+      "min": 80,
+      "max": 160
+    },
+    "suggestedSearchKeywords": [
+      "original dance audio",
+      "beat sync shake",
+      "choreography reel"
+    ],
+    "note": "STEP 2で動画の長さ（2〜30秒）や振動の強さを調整でき、STEP 4では元動画の音声を含めたままダウンロードできます。"
+  },
+  "cuts": [
+    {
+      "id": "cut-1",
+      "order": 1,
+      "label": "ダンス動画（音声ビート自動同期）",
+      "acceptedMedia": ["video"],
+      "durationSec": 8.0,
+      "shootingGuide": {
+        "shotType": "ダンス動画1本（縦・横どちらでも自動調整）",
+        "cameraMove": "音声のビートに合わせてわずかに振動（手ブレ防止のため控えめ〜調整可）",
+        "tips": "音楽やビートが入っているダンス動画を選ぶと、ブラウザ内で自動解析して拍の瞬間だけ小さく画面を揺らします。動画の長さもスライダーで自在に合わせられます。",
+        "silhouetteAsset": "guide-assets/cut-01.svg"
+      },
+      "effect": {
+        "motion": "beat-shake",
+        "transitionIn": "cut",
+        "filter": "vivid"
+      },
+      "textOverlay": {
+        "defaultText": "",
+        "placeholder": "例：DANCE *REEL*（空欄なら文字なし）",
+        "maxLength": 30,
+        "position": "bottom",
+        "style": "kinetic",
+        "animation": "word-pop",
+        "accentColor": "#ff4d1c"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-11-27T17:55:00+09:00",
+    "updatedAt": "2026-11-27T17:55:00+09:00",
+    "approvedBy": "watari000",
+    "sourceNotes": "ダンス動画の音声ビート解析微振動・任意尺調整・元音声付き書き出し対応"
+  }
+}

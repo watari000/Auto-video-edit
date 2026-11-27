@@ -20,6 +20,10 @@ import {
   parseKineticTokens,
   resolveCutAtTime,
 } from '../apps/user-editor/lib/video-engine.js';
+import {
+  computeBeatEnvelopeFromPcm,
+  computeBeatShakeOffset,
+} from '../apps/user-editor/lib/audio-beat-analyzer.js';
 import { evaluateMediaMetadata } from '../apps/user-editor/src/precheck/media-precheck.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,12 +56,12 @@ test('sample-cafe-01/template.json validates and all guide-assets exist', async 
   }
 });
 
-test('shared/templates/index.json lists >= 6 valid templates with existing assets and unique IDs', async () => {
+test('shared/templates/index.json lists >= 7 valid templates with existing assets and unique IDs', async () => {
   const templatesRoot = path.join(REPO_ROOT, 'shared', 'templates');
   const catalogRaw = await fs.readFile(path.join(templatesRoot, 'index.json'), 'utf8');
   const catalog = JSON.parse(catalogRaw);
 
-  assert.ok(Array.isArray(catalog) && catalog.length >= 6);
+  assert.ok(Array.isArray(catalog) && catalog.length >= 7);
   const seenIds = new Set();
 
   for (const entry of catalog) {
@@ -89,6 +93,7 @@ test('shared/templates/index.json lists >= 6 valid templates with existing asset
   assert.equal(seenIds.has('sample-sketch-art-04'), true);
   assert.equal(seenIds.has('sample-kinetic-caption-05'), true);
   assert.equal(seenIds.has('sample-rapid-recap-06'), true);
+  assert.equal(seenIds.has('sample-dance-beat-07'), true);
 });
 
 test('validateTemplateData rejects invalid muted=false or missing cuts', () => {
@@ -288,4 +293,32 @@ test('computeFlashOverlayAlpha peaks at 0s and decays to 0 after 0.09s', () => {
   assert.ok(computeFlashOverlayAlpha(0.045) > 0.2 && computeFlashOverlayAlpha(0.045) < 0.35);
   assert.equal(computeFlashOverlayAlpha(0.09), 0);
   assert.equal(computeFlashOverlayAlpha(0.5), 0);
+});
+
+test('computeBeatEnvelopeFromPcm detects beat bursts and computeBeatShakeOffset stays subtle', () => {
+  const sampleRate = 3000;
+  const silent = new Float32Array(sampleRate * 2);
+  const silentResult = computeBeatEnvelopeFromPcm(silent, sampleRate);
+  assert.equal(silentResult.peakCount, 0);
+
+  const beats = new Float32Array(sampleRate * 2);
+  // 0.3s, 0.8s, 1.3s, 1.8s に強いビートバーストを配置
+  for (const beatSec of [0.3, 0.8, 1.3, 1.8]) {
+    const start = Math.floor(beatSec * sampleRate);
+    for (let j = 0; j < 150 && start + j < beats.length; j++) {
+      beats[start + j] = Math.sin(j * 0.6) * 0.95;
+    }
+  }
+  const beatResult = computeBeatEnvelopeFromPcm(beats, sampleRate);
+  assert.ok(beatResult.peakCount >= 3, `Expected >= 3 peaks, got ${beatResult.peakCount}`);
+
+  const calm = computeBeatShakeOffset(0.15, 0.5, 0.6);
+  assert.equal(calm.offsetX, 0);
+  assert.equal(calm.offsetY, 0);
+  assert.equal(calm.zoomBoost, 0);
+
+  const hit = computeBeatShakeOffset(0.95, 0.5, 0.6);
+  assert.ok(Math.abs(hit.offsetX) <= 0.015);
+  assert.ok(Math.abs(hit.offsetY) <= 0.015);
+  assert.ok(hit.zoomBoost > 0.03);
 });

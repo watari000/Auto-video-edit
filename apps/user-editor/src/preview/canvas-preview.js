@@ -20,9 +20,10 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
       <div class="monitor-bezel">
         <canvas id="preview-canvas" width="${PREVIEW_WIDTH}" height="${PREVIEW_HEIGHT}" class="preview-canvas"></canvas>
       </div>
-      <div class="monitor-controls">
+      <div class="monitor-controls${template.allowSourceAudio ? ' has-audio' : ''}">
         <button type="button" id="preview-play-btn" class="btn btn-primary">再生する</button>
         <button type="button" id="preview-restart-btn" class="btn btn-secondary">先頭へ</button>
+        ${template.allowSourceAudio ? '<button type="button" id="preview-audio-btn" class="btn btn-secondary" aria-pressed="true">音声: ON</button>' : ''}
       </div>
       <div class="timeline-scrub-row">
         <input type="range" id="preview-scrub" class="scrub-range" min="0" max="5" step="0.05" value="0" aria-label="プレビュー再生位置" />
@@ -53,13 +54,28 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
   const ctx = canvas.getContext('2d');
   const playBtn = previewContainer.querySelector('#preview-play-btn');
   const restartBtn = previewContainer.querySelector('#preview-restart-btn');
+  const audioToggleBtn = previewContainer.querySelector('#preview-audio-btn');
   const hudTime = previewContainer.querySelector('#preview-hud-time');
   const timeLabel = previewContainer.querySelector('#preview-time-label');
   const scrub = previewContainer.querySelector('#preview-scrub');
   const captionInputs = captionWrapper.querySelector('#caption-inputs');
 
-  const { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
+  let { segments, totalDurationSec } = buildTimelineSegments(template.cuts);
   scrub.max = String(totalDurationSec);
+  let previewAudioEnabled = Boolean(template.allowSourceAudio);
+
+  if (audioToggleBtn) {
+    audioToggleBtn.addEventListener('click', () => {
+      previewAudioEnabled = !previewAudioEnabled;
+      audioToggleBtn.setAttribute('aria-pressed', String(previewAudioEnabled));
+      audioToggleBtn.textContent = previewAudioEnabled ? '音声: ON' : '音声: OFF';
+      for (const entry of Object.values(state.mediaByCutId)) {
+        if (entry?.mediaType === 'video') {
+          entry.element.muted = !(isPlaying && previewAudioEnabled);
+        }
+      }
+    });
+  }
 
   template.cuts.forEach((cut) => {
     if (!cut.textOverlay) {
@@ -116,25 +132,33 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
       if (Math.abs(video.currentTime - targetTime) > 0.12) {
         video.currentTime = targetTime;
       }
+      video.muted = !(isPlaying && previewAudioEnabled);
       if (isPlaying && video.paused) {
         video.play().catch(() => {});
       }
     } else if (!isPlaying) {
+      video.muted = true;
       if (!video.paused) {
         video.pause();
       }
       if (Math.abs(video.currentTime - targetTime) > 0.08) {
         video.currentTime = targetTime;
       }
-    } else if (video.paused) {
-      video.play().catch(() => {});
+    } else {
+      video.muted = !previewAudioEnabled;
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
     }
   }
 
   function pauseAllVideos(exceptCutId = null) {
     for (const [cutId, entry] of Object.entries(state.mediaByCutId)) {
-      if (cutId !== exceptCutId && entry?.mediaType === 'video' && !entry.element.paused) {
-        entry.element.pause();
+      if (cutId !== exceptCutId && entry?.mediaType === 'video') {
+        entry.element.muted = true;
+        if (!entry.element.paused) {
+          entry.element.pause();
+        }
       }
     }
   }
@@ -223,7 +247,13 @@ export function initPreviewSection(previewContainer, template, state, captionsCo
   renderAt(0);
 
   return {
-    refresh: () => renderAt(currentSec),
+    refresh: () => {
+      const updated = buildTimelineSegments(template.cuts);
+      segments = updated.segments;
+      totalDurationSec = updated.totalDurationSec;
+      scrub.max = String(totalDurationSec);
+      renderAt(Math.min(currentSec, totalDurationSec));
+    },
     stop: stopPlayback,
   };
 }

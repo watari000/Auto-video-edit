@@ -10,6 +10,7 @@ import {
  * STEP 04：マスタリング＆ローカル無音書き出しドック。工程ごとのテレメトリ進捗を表示する。
  */
 export function initExporterSection(container, template, state, resourcePool, beforeExportCallback) {
+  const canExportAudio = Boolean(template.allowSourceAudio);
   container.innerHTML = `
     <div class="export-dock">
       <div class="export-dock-grid">
@@ -19,9 +20,19 @@ export function initExporterSection(container, template, state, resourcePool, be
             <option value="0.6667" selected>軽量 720×1280（スマホ推奨・高速）</option>
             <option value="1">標準 1080×1920（フルHD）</option>
           </select>
+          ${
+            canExportAudio
+              ? `<label class="audio-export-toggle">
+                  <input type="checkbox" id="export-include-audio" checked />
+                  <span>元動画の音声を含めて書き出す（音あり）</span>
+                </label>`
+              : ''
+          }
         </div>
         <div>
-          <button type="button" id="export-start-btn" class="btn btn-accent">無音動画を書き出す</button>
+          <button type="button" id="export-start-btn" class="btn btn-accent">
+            ${canExportAudio ? '音声付きで書き出す' : '無音動画を書き出す'}
+          </button>
         </div>
       </div>
 
@@ -40,6 +51,7 @@ export function initExporterSection(container, template, state, resourcePool, be
   `;
 
   const scaleSelect = container.querySelector('#export-scale-select');
+  const includeAudioCheckbox = container.querySelector('#export-include-audio');
   const startBtn = container.querySelector('#export-start-btn');
   const progressWrap = container.querySelector('#export-progress-wrap');
   const stepLabel = container.querySelector('#export-step-label');
@@ -47,6 +59,12 @@ export function initExporterSection(container, template, state, resourcePool, be
   const progressTrack = container.querySelector('.progress-bar-track');
   const progressFill = container.querySelector('#export-progress-fill');
   const resultBox = container.querySelector('#export-result-box');
+
+  if (includeAudioCheckbox) {
+    includeAudioCheckbox.addEventListener('change', () => {
+      startBtn.textContent = includeAudioCheckbox.checked ? '音声付きで書き出す' : '無音動画を書き出す';
+    });
+  }
 
   let activeDownloadUrl = null;
 
@@ -89,11 +107,31 @@ export function initExporterSection(container, template, state, resourcePool, be
     const ctx = exportCanvas.getContext('2d');
 
     let stream = null;
+    let audioContextToResume = null;
+    let exportedWithAudio = false;
+    const primaryVideo = state.mediaByCutId[segments[0]?.cut.id]?.mediaType === 'video'
+      ? state.mediaByCutId[segments[0].cut.id].element
+      : null;
+
     try {
       await prepareVideosForStart(segments, state.mediaByCutId);
       setProgress('カット合成中...', 12);
 
-      stream = exportCanvas.captureStream(fps);
+      const canvasStream = exportCanvas.captureStream(fps);
+      const tracks = [...canvasStream.getVideoTracks()];
+
+      const wantsAudio = Boolean(canExportAudio && includeAudioCheckbox?.checked && primaryVideo);
+      if (wantsAudio) {
+        const audioTrackResult = await attachVideoAudioTrack(primaryVideo);
+        if (audioTrackResult) {
+          tracks.push(audioTrackResult.track);
+          audioContextToResume = audioTrackResult.audioCtx;
+          exportedWithAudio = true;
+          primaryVideo.muted = false;
+        }
+      }
+
+      stream = new MediaStream(tracks);
       const recorderOptions = mimeType ? { mimeType, videoBitsPerSecond: 4_500_000 } : undefined;
       const recorder = new MediaRecorder(stream, recorderOptions);
       const chunks = [];
@@ -130,23 +168,34 @@ export function initExporterSection(container, template, state, resourcePool, be
       const isMp4 = outputBlob.type.includes('mp4');
       const ext = isMp4 ? 'mp4' : 'webm';
       const fileName = `Auto-video-edit_${template.id}.${ext}`;
+      const audioLabel = exportedWithAudio ? '音声あり' : '無音';
 
       setProgress('書き出し完了！', 100);
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `
         <p class="notice notice-ok">
-          無音動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒）の書き出しが完了しました。
+          ${audioLabel}動画（${width}×${height} / ${totalDurationSec.toFixed(1)}秒）の書き出しが完了しました。
           ${isMp4 ? '' : '（※このブラウザはMP4直接出力非対応のため WebM 形式で保存されました。Safari等ではMP4で保存されます）'}
         </p>
         <a href="${activeDownloadUrl}" download="${fileName}" class="btn btn-primary download-cta">
           ${fileName} を端末に保存する
         </a>
-        <p class="export-next-hint">保存後、Instagramのリール投稿画面でおすすめ音源をつけてアップしてください。</p>
+        <p class="export-next-hint">${
+          exportedWithAudio
+            ? '保存した動画をそのままSNSへ投稿できます。'
+            : '保存後、Instagramのリール投稿画面でおすすめ音源をつけてアップしてください。'
+        }</p>
       `;
     } catch (error) {
       resultBox.classList.remove('hidden');
       resultBox.innerHTML = `<p class="notice notice-error">${escapeHtml(error.message)}</p>`;
     } finally {
+      if (primaryVideo) {
+        primaryVideo.muted = true;
+      }
+      if (audioContextToResume && audioContextToResume.state === 'running') {
+        audioContextToResume.suspend().catch(() => {});
+      }
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
@@ -156,6 +205,31 @@ export function initExporterSection(container, template, state, resourcePool, be
       startBtn.disabled = false;
     }
   });
+}
+
+async function attachVideoAudioTrack(videoElement) {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    return null;
+  }
+  try {
+    // 同じvideo要素に対して複数回createMediaElementSourceを呼ぶと例外になるためインスタンスを保持する
+    if (!videoElement._audioBridge) {
+      const audioCtx = new AudioCtx();
+      const source = audioCtx.createMediaElementSource(videoElement);
+      const destination = audioCtx.createMediaStreamDestination();
+      source.connect(destination);
+      videoElement._audioBridge = { audioCtx, destination };
+    }
+    const { audioCtx, destination } = videoElement._audioBridge;
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+    const track = destination.stream.getAudioTracks()[0];
+    return track ? { track, audioCtx } : null;
+  } catch {
+    return null;
+  }
 }
 
 async function prepareVideosForStart(segments, mediaByCutId) {

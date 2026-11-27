@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 320" role="img" aria-label="ダンス動画の音声ビートに合わせて画面がわずかに振動する演出ガイド">
+  <rect width="180" height="320" rx="8" fill="#111114" />
+  <rect x="6" y="6" width="168" height="308" rx="4" fill="none" stroke="#f4f1ea" stroke-opacity="0.14" stroke-width="1" />
+  <g stroke="#f4f1ea" stroke-opacity="0.55" stroke-width="1.5" fill="none">
+    <path d="M16 28 V16 H28" /><path d="M152 16 H164 V28" /><path d="M16 292 V304 H28" /><path d="M152 304 H164 V292" />
+  </g>
+  <circle cx="24" cy="24" r="2.5" fill="#ff4d1c" />
+  <text x="32" y="27" font-size="7.5" font-family="monospace" letter-spacing="1" fill="#f4f1ea" fill-opacity="0.75">AUDIO BEAT SHAKE</text>
+  <!-- Dancer silhouette -->
+  <circle cx="90" cy="84" r="14" fill="#d4af7a" fill-opacity="0.22" stroke="#d4af7a" stroke-width="1.4" />
+  <path d="M90 100 V168 M54 126 L90 112 L126 124 M90 168 L66 226 M90 168 L114 224" stroke="#f4f1ea" stroke-width="2" stroke-linecap="round" fill="none" />
+  <!-- Subtle camera shake brackets -->
+  <g stroke="#ff4d1c" stroke-width="1.6" fill="none" stroke-linecap="round">
+    <path d="M26 144 L18 152 L26 160" />
+    <path d="M154 144 L162 152 L154 160" />
+  </g>
+  <!-- Audio beat waveform -->
+  <g stroke="#d4af7a" stroke-width="2.5" stroke-linecap="round">
+    <line x1="34" y1="264" x2="34" y2="252" />
+    <line x1="48" y1="268" x2="48" y2="246" />
+    <line x1="62" y1="274" x2="62" y2="236" stroke="#ff4d1c" />
+    <line x1="76" y1="266" x2="76" y2="248" />
+    <line x1="90" y1="276" x2="90" y2="234" stroke="#ff4d1c" />
+    <line x1="104" y1="265" x2="104" y2="250" />
+    <line x1="118" y1="274" x2="118" y2="236" stroke="#ff4d1c" />
+    <line x1="132" y1="267" x2="132" y2="248" />
+    <line x1="146" y1="264" x2="146" y2="252" />
+  </g>
+  <text x="90" y="294" text-anchor="middle" font-size="8" font-family="monospace" fill="#a19d95">REAL AUDIO SYNC + SHAKE</text>
+</svg>

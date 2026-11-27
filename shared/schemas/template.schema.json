@@ -46,6 +46,15 @@
       "enum": ["draft", "review", "published"],
       "description": "Human-in-the-Loop承認状態。公開は published のみ"
     },
+    "inputMode": {
+      "type": "string",
+      "enum": ["multi-clip", "beat-sync-video"],
+      "description": "素材入力モード（複数カット選択 or ダンス動画1本の音声ビート同期）"
+    },
+    "allowSourceAudio": {
+      "type": "boolean",
+      "description": "利用者がアップロードした元動画の音声を保持して書き出せるようにする"
+    },
     "aspectRatio": {
       "type": "string",
       "enum": ["9:16", "1:1", "4:5"],
@@ -238,7 +247,7 @@
           "properties": {
             "motion": {
               "type": "string",
-              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right"]
+              "enum": ["none", "zoom-in", "zoom-out", "pan-left", "pan-right", "beat-shake"]
             },
             "transitionIn": {
               "type": "string",
